@@ -10,10 +10,9 @@ import torch
 import torch.utils.data as data
 import cv2
 from dataloaders import transforms
-from dataloaders import CoordConv
+import CoordConv
 
 input_options = ['d', 'rgb', 'rgbd', 'g', 'gd']
-
 
 def load_calib():
     """
@@ -178,12 +177,10 @@ def depth_read(filename):
     depth = np.expand_dims(depth, -1)
     return depth
 
-
 def drop_depth_measurements(depth, prob_keep):
     mask = np.random.binomial(1, prob_keep, depth.shape)
     depth *= mask
     return depth
-
 
 def train_transform(rgb, sparse, target, position, args):
     # s = np.random.uniform(1.0, 1.5) # random scaling
@@ -226,7 +223,7 @@ def train_transform(rgb, sparse, target, position, args):
         position = bottom_crop_only(position)
 
     # random crop
-    # if small_training == True:
+    #if small_training == True:
     if args.not_random_crop == False:
         h = oheight
         w = owidth
@@ -261,7 +258,6 @@ def train_transform(rgb, sparse, target, position, args):
                 position = position[i:i + rheight, j:j + rwidth]
 
     return rgb, sparse, target, position
-
 
 def val_transform(rgb, sparse, target, position, args):
     oheight = args.val_h

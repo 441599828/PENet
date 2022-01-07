@@ -16,17 +16,13 @@ input_options = ['d', 'rgb', 'rgbd', 'g', 'gd']
 
 
 def load_calib():
-    """
-    Temporarily hardcoding the calibration matrix using calib file from 2011_09_26
-    """
-    calib = open("dataloaders/calib_cam_to_cam.txt", "r")
+    calib = open("dataloaders/carla_camera_K.txt", "r")
     lines = calib.readlines()
-    P_rect_line = lines[25]
+    P_rect_line = lines[0]
 
     Proj_str = P_rect_line.split(":")[1].split(" ")[1:]
-    Proj = np.reshape(np.array([float(p) for p in Proj_str]),
-                      (3, 4)).astype(np.float32)
-    K = Proj[:3, :3]  # camera matrix
+    K = np.reshape(np.array([float(p) for p in Proj_str]),
+                      (3, 3)).astype(np.float32)
 
     # note: we will take the center crop of the images during augmentation
     # that changes the optical centers, but not focal lengths
@@ -65,6 +61,7 @@ def get_paths_and_transform(split, args):
     elif split == "val":
         if args.val == "full":
             transform = val_transform
+            glob_d=os.path.join(args.data_folder,'train')
             glob_d = os.path.join(
                 args.data_folder,
                 'data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
@@ -336,7 +333,7 @@ def get_rgb_near(path, args):
     return rgb_read(path_near)
 
 
-class KittiDepth(data.Dataset):
+class CarlaDepth(data.Dataset):
     """A data loader for the Kitti dataset
     """
 

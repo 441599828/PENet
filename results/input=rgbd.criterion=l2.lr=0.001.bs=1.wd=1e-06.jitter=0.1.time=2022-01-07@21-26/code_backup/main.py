@@ -7,8 +7,7 @@ import torch.optim
 import torch.utils.data
 import time
 
-# from dataloaders.kitti_loader import load_calib, input_options, KittiDepth
-from dataloaders.carla_loader import load_calib, input_options, CarlaDepth
+from dataloaders.kitti_loader import load_calib, input_options, KittiDepth
 from metrics import AverageMeter, Result
 import criteria
 import helper
@@ -381,20 +380,17 @@ def main():
     test_dataset = None
     test_loader = None
     if (args.test):
-        # test_dataset = KittiDepth('test_completion', args)
-        test_dataset = CarlaDepth('test_completion', args)
+        test_dataset = KittiDepth('test_completion', args)
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
             batch_size=1,
             shuffle=False,
             num_workers=1,
             pin_memory=True)
-
         iterate("test_completion", args, test_loader, model, None, logger, 0)
         return
 
-    # val_dataset = KittiDepth('val', args)
-    val_dataset = CarlaDepth('val', args)
+    val_dataset = KittiDepth('val', args)
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=1,
@@ -440,8 +436,7 @@ def main():
     # Data loading code
     print("=> creating data loaders ... ")
     if not is_eval:
-        # train_dataset = KittiDepth('train', args)
-        train_dataset = CarlaDepth('train', args)
+        train_dataset = KittiDepth('train', args)
         train_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=args.batch_size,
                                                    shuffle=True,

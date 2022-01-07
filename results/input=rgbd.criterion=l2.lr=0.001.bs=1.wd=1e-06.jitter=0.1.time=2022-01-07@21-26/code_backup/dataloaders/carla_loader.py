@@ -9,8 +9,8 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 import cv2
-from dataloaders import transforms
-from dataloaders import CoordConv
+import transforms
+import CoordConv
 
 input_options = ['d', 'rgb', 'rgbd', 'g', 'gd']
 
@@ -19,9 +19,9 @@ def load_calib():
     """
     Temporarily hardcoding the calibration matrix using calib file from 2011_09_26
     """
-    calib = open("dataloaders/calib_cam_to_cam.txt", "r")
+    calib = open("dataloaders/carla_camera_K.txt", "r")
     lines = calib.readlines()
-    P_rect_line = lines[25]
+    P_rect_line = lines[0]
 
     Proj_str = P_rect_line.split(":")[1].split(" ")[1:]
     Proj = np.reshape(np.array([float(p) for p in Proj_str]),
