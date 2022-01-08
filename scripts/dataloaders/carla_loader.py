@@ -22,7 +22,7 @@ def load_calib():
 
     Proj_str = P_rect_line.split(":")[1].split(" ")[1:]
     K = np.reshape(np.array([float(p) for p in Proj_str]),
-                      (3, 3)).astype(np.float32)
+                   (3, 3)).astype(np.float32)
 
     # note: we will take the center crop of the images during augmentation
     # that changes the optical centers, but not focal lengths
@@ -36,115 +36,51 @@ def load_calib():
 def get_paths_and_transform(split, args):
     assert (args.use_d or args.use_rgb
             or args.use_g), 'no proper input selected'
+    glob_d = None
+    glob_gt = None
+    glob_rgb = None
+    transform = None
 
     if split == "train":
         transform = train_transform
-        # transform = val_transform
-        glob_d = os.path.join(
-            args.data_folder,
-            'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
-        )
-        glob_gt = os.path.join(
-            args.data_folder,
-            'data_depth_annotated/train/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
-        )
+        glob_d = os.path.join(args.data_folder, 'train/sparsedepmap/*.png')
+        glob_gt = os.path.join(args.data_folder, 'train/depth/*.png')
+        glob_rgb = os.path.join(args.data_folder, 'train/rgb/*.jpg')
 
-        def get_rgb_paths(p):
-            ps = p.split('/')
-            date_liststr = []
-            date_liststr.append(ps[-5][:10])
-            # pnew = '/'.join([args.data_folder] + ['data_rgb'] + ps[-6:-4] +
-            #                ps[-2:-1] + ['data'] + ps[-1:])
-            pnew = '/'.join(date_liststr + ps[-5:-4] + ps[-2:-1] + ['data'] + ps[-1:])
-            pnew = os.path.join(args.data_folder_rgb, pnew)
-            return pnew
     elif split == "val":
-        if args.val == "full":
-            transform = val_transform
-            glob_d=os.path.join(args.data_folder,'train')
-            glob_d = os.path.join(
-                args.data_folder,
-                'data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
-            )
-            glob_gt = os.path.join(
-                args.data_folder,
-                'data_depth_annotated/val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
-            )
+        transform = val_transform
+        glob_d = os.path.join(args.data_folder, 'val/sparsedepmap/*.png')
+        glob_gt = os.path.join(args.data_folder, 'val/depth/*.png')
+        glob_rgb = os.path.join(args.data_folder, 'val/rgb/*.jpg')
 
-            def get_rgb_paths(p):
-                ps = p.split('/')
-                date_liststr = []
-                date_liststr.append(ps[-5][:10])
-                # pnew = '/'.join(ps[:-7] +
-                #   ['data_rgb']+ps[-6:-4]+ps[-2:-1]+['data']+ps[-1:])
-                pnew = '/'.join(date_liststr + ps[-5:-4] + ps[-2:-1] + ['data'] + ps[-1:])
-                pnew = os.path.join(args.data_folder_rgb, pnew)
-                return pnew
-
-        elif args.val == "select":
-            # transform = no_transform
-            transform = val_transform
-            glob_d = os.path.join(
-                args.data_folder,
-                "data_depth_selection/val_selection_cropped/velodyne_raw/*.png")
-            glob_gt = os.path.join(
-                args.data_folder,
-                "data_depth_selection/val_selection_cropped/groundtruth_depth/*.png"
-            )
-
-            def get_rgb_paths(p):
-                return p.replace("groundtruth_depth", "image")
-    elif split == "test_completion":
-        transform = no_transform
-        glob_d = os.path.join(
-            args.data_folder,
-            "data_depth_selection/test_depth_completion_anonymous/velodyne_raw/*.png"
-        )
-        glob_gt = None  # "test_depth_completion_anonymous/"
-        glob_rgb = os.path.join(
-            args.data_folder,
-            "data_depth_selection/test_depth_completion_anonymous/image/*.png")
-    elif split == "test_prediction":
-        transform = no_transform
-        glob_d = None
-        glob_gt = None  # "test_depth_completion_anonymous/"
-        glob_rgb = os.path.join(
-            args.data_folder,
-            "data_depth_selection/test_depth_prediction_anonymous/image/*.png")
+    elif split == "test":
+        if args.test == "easy":
+            transform = no_transform
+            glob_d = os.path.join(args.data_folder, 'test_easy/sparsedepmap/*.png')
+            glob_gt = os.path.join(args.data_folder, 'test_easy/depth/*.png')
+            glob_rgb = os.path.join(args.data_folder, 'test_easy/rgb/*.jpg')
+        elif args.test == "middle":
+            transform = no_transform
+            glob_d = os.path.join(args.data_folder, 'test_middle/sparsedepmap/*.png')
+            glob_gt = os.path.join(args.data_folder, 'test_middle/depth/*.png')
+            glob_rgb = os.path.join(args.data_folder, 'test_middle/rgb/*.jpg')
+        elif args.test == "hard":
+            transform = no_transform
+            glob_d = os.path.join(args.data_folder, 'test_hard/sparsedepmap/*.png')
+            glob_gt = os.path.join(args.data_folder, 'test_hard/depth/*.png')
+            glob_rgb = os.path.join(args.data_folder, 'test_hard/rgb/*.jpg')
+        elif args.test == "hardest":
+            transform = no_transform
+            glob_d = os.path.join(args.data_folder, 'test_hardest/sparsedepmap/*.png')
+            glob_gt = os.path.join(args.data_folder, 'test_hardest/depth/*.png')
+            glob_rgb = os.path.join(args.data_folder, 'test_hardest/rgb/*.jpg')
     else:
         raise ValueError("Unrecognized split " + str(split))
 
-    if glob_gt is not None:
-        # train or val-full or val-select
-        paths_d = sorted(glob.glob(glob_d))
-        paths_gt = sorted(glob.glob(glob_gt))
-        paths_rgb = [get_rgb_paths(p) for p in paths_gt]
-    else:
-        # test only has d or rgb
-        paths_rgb = sorted(glob.glob(glob_rgb))
-        paths_gt = [None] * len(paths_rgb)
-        if split == "test_prediction":
-            paths_d = [None] * len(
-                paths_rgb)  # test_prediction has no sparse depth
-        else:
-            paths_d = sorted(glob.glob(glob_d))
+    paths_d = sorted(glob.glob(glob_d))
+    paths_gt = sorted(glob.glob(glob_gt))
+    paths_rgb = sorted(glob.glob(glob_rgb))
 
-    if len(paths_d) == 0 and len(paths_rgb) == 0 and len(paths_gt) == 0:
-        raise (RuntimeError("Found 0 images under {}".format(glob_gt)))
-    if len(paths_d) == 0 and args.use_d:
-        raise (RuntimeError("Requested sparse depth but none was found"))
-    if len(paths_rgb) == 0 and args.use_rgb:
-        raise (RuntimeError("Requested rgb images but none was found"))
-    if len(paths_rgb) == 0 and args.use_g:
-        raise (RuntimeError("Requested gray images but no rgb was found"))
-    if len(paths_rgb) != len(paths_d) or len(paths_rgb) != len(paths_gt):
-        print(len(paths_rgb), len(paths_d), len(paths_gt))
-        # for i in range(999):
-        #    print("#####")
-        #    print(paths_rgb[i])
-        #    print(paths_d[i])
-        #    print(paths_gt[i])
-        # raise (RuntimeError("Produced different sizes for datasets"))
     paths = {"rgb": paths_rgb, "d": paths_d, "gt": paths_gt}
     return paths, transform
 

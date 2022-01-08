@@ -106,11 +106,11 @@ parser.add_argument('-i',
                     default='rgbd',
                     choices=input_options,
                     help='input: | '.join(input_options))
-parser.add_argument('--val',
+parser.add_argument('--test',
                     type=str,
-                    default="select",
-                    choices=["select", "full"],
-                    help='full or select validation set')
+                    default="middle",
+                    choices=["easy", "middle","hard","hardest"],
+                    help='test set in different traffic flow')
 parser.add_argument('--jitter',
                     type=float,
                     default=0.1,
