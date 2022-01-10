@@ -10,6 +10,9 @@ conda install numpy matplotlib Pillow scikit-image
 
 pip install opencv-python
 
-# train in KITTI
+# train in Carla
 
-python main.py -b 1 -n e --test easy --data-folder /media/whn/新加卷/dataset/kitti_depth/depth --data-folder-rgb /media/whn/新加卷/dataset/kitti_raw
+python main.py -b 1 -n e --data-folder /media/whn/新加卷/dataset/kitti_depth/depth --data-folder-rgb /media/whn/新加卷/dataset/kitti_raw
+
+# test in Carla
+

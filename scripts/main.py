@@ -7,7 +7,6 @@ import torch.optim
 import torch.utils.data
 import time
 
-# from dataloaders.kitti_loader import load_calib, input_options, KittiDepth
 from dataloaders.carla_loader import load_calib, input_options, CarlaDepth
 from metrics import AverageMeter, Result
 import criteria
@@ -109,7 +108,7 @@ parser.add_argument('-i',
 parser.add_argument('--test',
                     type=str,
                     default="middle",
-                    choices=["easy", "middle","hard","hardest"],
+                    choices=["easy", "middle", "hard", "hardest"],
                     help='test set in different traffic flow')
 parser.add_argument('--jitter',
                     type=float,
@@ -124,17 +123,9 @@ parser.add_argument('--rank-metric',
 parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
 parser.add_argument('-f', '--freeze-backbone', action="store_true", default=False,
                     help='freeze parameters in backbone')
-parser.add_argument('--test', action="store_true", default=False,
+parser.add_argument('--savetest', action="store_true", default=False,
                     help='save result kitti test dataset for submission')
 parser.add_argument('--cpu', action="store_true", default=False, help='run on cpu')
-
-# random cropping
-parser.add_argument('--not-random-crop', action="store_true", default=False,
-                    help='prohibit random cropping')
-parser.add_argument('-he', '--random-crop-height', default=320, type=int, metavar='N',
-                    help='random crop height')
-parser.add_argument('-w', '--random-crop-width', default=1216, type=int, metavar='N',
-                    help='random crop height')
 
 # geometric encoding
 parser.add_argument('-co', '--convolutional-layer-encoding', default="xyz", type=str,
@@ -151,8 +142,6 @@ args.result = os.path.join('..', 'results')
 args.use_rgb = ('rgb' in args.input)
 args.use_d = 'd' in args.input
 args.use_g = 'g' in args.input
-args.val_h = 352
-args.val_w = 1216
 print(args)
 
 cuda = torch.cuda.is_available() and not args.cpu
@@ -182,8 +171,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
     meters = [block_average_meter, average_meter]
 
     # switch to appropriate mode
-    assert mode in ["train", "val", "eval", "test_prediction", "test_completion"], \
-        "unsupported mode: {}".format(mode)
+    assert mode in ["train", "val", "eval", "test"], "unsupported mode: {}".format(mode)
     if mode == 'train':
         model.train()
         lr = helper.adjust_learning_rate(args.lr, optimizer, actual_epoch, args)
@@ -199,19 +187,13 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
             for key, val in batch_data.items() if val is not None
         }
 
-        gt = batch_data[
-            'gt'] if mode != 'test_prediction' and mode != 'test_completion' else None
+        gt = batch_data['gt'] if mode != 'test' else None
         data_time = time.time() - dstart
 
         pred = None
         start = None
         gpu_time = 0
 
-        # start = time.time()
-        # pred = model(batch_data)
-        # gpu_time = time.time() - start
-
-        # '''
         if (args.network_model == 'e'):
             start = time.time()
             st1_pred, st2_pred, pred = model(batch_data)
@@ -221,7 +203,6 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
 
         if (args.evaluate):
             gpu_time = time.time() - start
-        # '''
 
         depth_loss, photometric_loss, smooth_loss, mask = 0, 0, 0, None
 
@@ -256,7 +237,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
                 optimizer.step()
             print("loss:", loss, " epoch:", epoch, " ", i, "/", len(loader))
 
-        if mode == "test_completion":
+        if mode == "test":
             str_i = str(i)
             path_i = str_i.zfill(10) + '.png'
             path = os.path.join(args.data_folder_save, path_i)
@@ -268,7 +249,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
         with torch.no_grad():
             mini_batch_size = next(iter(batch_data.values())).size(0)
             result = Result()
-            if mode != 'test_prediction' and mode != 'test_completion':
+            if mode != 'test':
                 result.evaluate(pred.data, gt.data, photometric_loss)
                 [
                     m.update(result, gpu_time, data_time, mini_batch_size)
@@ -301,17 +282,14 @@ def main():
             print("=> loading checkpoint '{}' ... ".format(args.evaluate),
                   end='')
             checkpoint = torch.load(args.evaluate, map_location=device)
-            # args = checkpoint['args']
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
             args.val = args_new.val
             is_eval = True
-
             print("Completed.")
         else:
             is_eval = True
             print("No model found at '{}'".format(args.evaluate))
-            # return
 
     elif args.resume:  # optionally resume from a checkpoint
         args_new = args
@@ -319,7 +297,6 @@ def main():
             print("=> loading checkpoint '{}' ... ".format(args.resume),
                   end='')
             checkpoint = torch.load(args.resume, map_location=device)
-
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
             args.val = args_new.val
@@ -364,7 +341,6 @@ def main():
     optimizer = None
 
     if checkpoint is not None:
-        # print(checkpoint.keys())
         if (args.freeze_backbone == True):
             model.backbone.load_state_dict(checkpoint['model'])
         else:
@@ -380,9 +356,8 @@ def main():
 
     test_dataset = None
     test_loader = None
-    if (args.test):
-        # test_dataset = KittiDepth('test_completion', args)
-        test_dataset = CarlaDepth('test_completion', args)
+    if (args.savetest):
+        test_dataset = CarlaDepth('test', args)
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
             batch_size=1,
@@ -390,10 +365,9 @@ def main():
             num_workers=1,
             pin_memory=True)
 
-        iterate("test_completion", args, test_loader, model, None, logger, 0)
+        iterate("test", args, test_loader, model, None, logger, 0)
         return
 
-    # val_dataset = KittiDepth('val', args)
     val_dataset = CarlaDepth('val', args)
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
@@ -440,7 +414,6 @@ def main():
     # Data loading code
     print("=> creating data loaders ... ")
     if not is_eval:
-        # train_dataset = KittiDepth('train', args)
         train_dataset = CarlaDepth('train', args)
         train_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=args.batch_size,
