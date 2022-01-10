@@ -119,7 +119,7 @@ def train_transform(rgb, sparse, target, position, args):
     return rgb, sparse, target, position
 
 
-def no_transform(rgb, sparse, target, position):
+def no_transform(rgb, sparse, target, position, args):
     return rgb, sparse, target, position
 
 to_tensor = transforms.ToTensor()
