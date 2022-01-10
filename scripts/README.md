@@ -14,7 +14,9 @@ pip install opencv-python
 
 1. Train ENet: python main.py -b 1 -n e --data-folder /media/whn/新加卷/dataset/kitti_depth/depth --data-folder-rgb /media/whn/新加卷/dataset/kitti_raw
 
-2.
+    CUDA_VISIBLE_DEVICES="2,3,4,5,6,7,8,9" python main.py -b 40 -n e --data-folder /home/whn/data/carla/Data --data-folder-rgb /home/whn/data/carla/Data
+
+2
 
 # test in Carla
 
