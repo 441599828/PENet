@@ -12,7 +12,9 @@ pip install opencv-python
 
 # train in Carla
 
-python main.py -b 1 -n e --data-folder /media/whn/新加卷/dataset/kitti_depth/depth --data-folder-rgb /media/whn/新加卷/dataset/kitti_raw
+1. Train ENet: python main.py -b 1 -n e --data-folder /media/whn/新加卷/dataset/kitti_depth/depth --data-folder-rgb /media/whn/新加卷/dataset/kitti_raw
+
+2.
 
 # test in Carla
 
