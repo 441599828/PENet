@@ -1,5 +1,6 @@
 from basic import *
 
+
 class ENet(nn.Module):
     def __init__(self, args):
         super(ENet, self).__init__()
@@ -29,13 +30,18 @@ class ENet(nn.Module):
         self.rgb_encoder_layer9 = BasicBlockGeo(inplanes=512, planes=1024, stride=2, geoplanes=self.geoplanes)
         self.rgb_encoder_layer10 = BasicBlockGeo(inplanes=1024, planes=1024, stride=1, geoplanes=self.geoplanes)
 
-        self.rgb_decoder_layer8 = deconvbnrelu(in_channels=1024, out_channels=512, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.rgb_decoder_layer6 = deconvbnrelu(in_channels=512, out_channels=256, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.rgb_decoder_layer4 = deconvbnrelu(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.rgb_decoder_layer2 = deconvbnrelu(in_channels=128, out_channels=64, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.rgb_decoder_layer0 = deconvbnrelu(in_channels=64, out_channels=32, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.rgb_decoder_output = deconvbnrelu(in_channels=32, out_channels=2, kernel_size=3, stride=1, padding=1, output_padding=0)
-
+        self.rgb_decoder_layer8 = deconvbnrelu(in_channels=1024, out_channels=512, kernel_size=5, stride=2, padding=2,
+                                               output_padding=1)
+        self.rgb_decoder_layer6 = deconvbnrelu(in_channels=512, out_channels=256, kernel_size=5, stride=2, padding=2,
+                                               output_padding=1)
+        self.rgb_decoder_layer4 = deconvbnrelu(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=2,
+                                               output_padding=1)
+        self.rgb_decoder_layer2 = deconvbnrelu(in_channels=128, out_channels=64, kernel_size=5, stride=2, padding=2,
+                                               output_padding=1)
+        self.rgb_decoder_layer0 = deconvbnrelu(in_channels=64, out_channels=32, kernel_size=5, stride=2, padding=2,
+                                               output_padding=1)
+        self.rgb_decoder_output = deconvbnrelu(in_channels=32, out_channels=2, kernel_size=3, stride=1, padding=1,
+                                               output_padding=0)
 
         # depth encoder
         self.depth_conv_init = convbnrelu(in_channels=2, out_channels=32, kernel_size=5, stride=1, padding=2)
@@ -52,11 +58,16 @@ class ENet(nn.Module):
         self.depth_layer10 = BasicBlockGeo(inplanes=1024, planes=1024, stride=1, geoplanes=self.geoplanes)
 
         # decoder
-        self.decoder_layer1 = deconvbnrelu(in_channels=1024, out_channels=512, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.decoder_layer2 = deconvbnrelu(in_channels=512, out_channels=256, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.decoder_layer3 = deconvbnrelu(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.decoder_layer4 = deconvbnrelu(in_channels=128, out_channels=64, kernel_size=5, stride=2, padding=2, output_padding=1)
-        self.decoder_layer5 = deconvbnrelu(in_channels=64, out_channels=32, kernel_size=5, stride=2, padding=2, output_padding=1)
+        self.decoder_layer1 = deconvbnrelu(in_channels=1024, out_channels=512, kernel_size=5, stride=2, padding=2,
+                                           output_padding=1)
+        self.decoder_layer2 = deconvbnrelu(in_channels=512, out_channels=256, kernel_size=5, stride=2, padding=2,
+                                           output_padding=1)
+        self.decoder_layer3 = deconvbnrelu(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=2,
+                                           output_padding=1)
+        self.decoder_layer4 = deconvbnrelu(in_channels=128, out_channels=64, kernel_size=5, stride=2, padding=2,
+                                           output_padding=1)
+        self.decoder_layer5 = deconvbnrelu(in_channels=64, out_channels=32, kernel_size=5, stride=2, padding=2,
+                                           output_padding=1)
 
         self.decoder_layer6 = convbnrelu(in_channels=32, out_channels=2, kernel_size=3, stride=1, padding=1)
         self.softmax = nn.Softmax(dim=1)
@@ -66,7 +77,7 @@ class ENet(nn.Module):
         weights_init(self)
 
     def forward(self, input):
-        #independent input
+        # independent input
         rgb = input['rgb']
         d = input['d']
 
@@ -104,7 +115,7 @@ class ENet(nn.Module):
         unorm_s5 = self.pooling(unorm_s4)
         unorm_s6 = self.pooling(unorm_s5)
 
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
         d_s2, vm_s2 = self.sparsepooling(d, valid_mask)
         d_s3, vm_s3 = self.sparsepooling(d_s2, vm_s2)
         d_s4, vm_s4 = self.sparsepooling(d_s3, vm_s3)
@@ -140,22 +151,22 @@ class ENet(nn.Module):
             geo_s5 = d_s5
             geo_s6 = d_s6
 
-        #embeded input
-        #rgb = input[:, 0:3, :, :]
-        #d = input[:, 3:4, :, :]
+        # embeded input
+        # rgb = input[:, 0:3, :, :]
+        # d = input[:, 3:4, :, :]
 
         # b 1 352 1216
         rgb_feature = self.rgb_conv_init(torch.cat((rgb, d), dim=1))
-        rgb_feature1 = self.rgb_encoder_layer1(rgb_feature, geo_s1, geo_s2) # b 32 176 608
-        rgb_feature2 = self.rgb_encoder_layer2(rgb_feature1, geo_s2, geo_s2) # b 32 176 608
-        rgb_feature3 = self.rgb_encoder_layer3(rgb_feature2, geo_s2, geo_s3) # b 64 88 304
-        rgb_feature4 = self.rgb_encoder_layer4(rgb_feature3, geo_s3, geo_s3) # b 64 88 304
-        rgb_feature5 = self.rgb_encoder_layer5(rgb_feature4, geo_s3, geo_s4) # b 128 44 152
-        rgb_feature6 = self.rgb_encoder_layer6(rgb_feature5, geo_s4, geo_s4) # b 128 44 152
-        rgb_feature7 = self.rgb_encoder_layer7(rgb_feature6, geo_s4, geo_s5) # b 256 22 76
-        rgb_feature8 = self.rgb_encoder_layer8(rgb_feature7, geo_s5, geo_s5) # b 256 22 76
-        rgb_feature9 = self.rgb_encoder_layer9(rgb_feature8, geo_s5, geo_s6) # b 512 11 38
-        rgb_feature10 = self.rgb_encoder_layer10(rgb_feature9, geo_s6, geo_s6) # b 512 11 38
+        rgb_feature1 = self.rgb_encoder_layer1(rgb_feature, geo_s1, geo_s2)  # b 32 176 608
+        rgb_feature2 = self.rgb_encoder_layer2(rgb_feature1, geo_s2, geo_s2)  # b 32 176 608
+        rgb_feature3 = self.rgb_encoder_layer3(rgb_feature2, geo_s2, geo_s3)  # b 64 88 304
+        rgb_feature4 = self.rgb_encoder_layer4(rgb_feature3, geo_s3, geo_s3)  # b 64 88 304
+        rgb_feature5 = self.rgb_encoder_layer5(rgb_feature4, geo_s3, geo_s4)  # b 128 44 152
+        rgb_feature6 = self.rgb_encoder_layer6(rgb_feature5, geo_s4, geo_s4)  # b 128 44 152
+        rgb_feature7 = self.rgb_encoder_layer7(rgb_feature6, geo_s4, geo_s5)  # b 256 22 76
+        rgb_feature8 = self.rgb_encoder_layer8(rgb_feature7, geo_s5, geo_s5)  # b 256 22 76
+        rgb_feature9 = self.rgb_encoder_layer9(rgb_feature8, geo_s5, geo_s6)  # b 512 11 38
+        rgb_feature10 = self.rgb_encoder_layer10(rgb_feature9, geo_s6, geo_s6)  # b 512 11 38
 
         rgb_feature_decoder8 = self.rgb_decoder_layer8(rgb_feature10)
         rgb_feature8_plus = rgb_feature_decoder8 + rgb_feature8
@@ -167,7 +178,7 @@ class ENet(nn.Module):
         rgb_feature4_plus = rgb_feature_decoder4 + rgb_feature4
 
         rgb_feature_decoder2 = self.rgb_decoder_layer2(rgb_feature4_plus)
-        rgb_feature2_plus = rgb_feature_decoder2 + rgb_feature2   # b 32 176 608
+        rgb_feature2_plus = rgb_feature_decoder2 + rgb_feature2  # b 32 176 608
 
         rgb_feature_decoder0 = self.rgb_decoder_layer0(rgb_feature2_plus)
         rgb_feature0_plus = rgb_feature_decoder0 + rgb_feature
@@ -181,24 +192,24 @@ class ENet(nn.Module):
         # input = torch.cat([d, mask], 1)
 
         sparsed_feature = self.depth_conv_init(torch.cat((d, rgb_depth), dim=1))
-        sparsed_feature1 = self.depth_layer1(sparsed_feature, geo_s1, geo_s2)# b 32 176 608
-        sparsed_feature2 = self.depth_layer2(sparsed_feature1, geo_s2, geo_s2) # b 32 176 608
+        sparsed_feature1 = self.depth_layer1(sparsed_feature, geo_s1, geo_s2)  # b 32 176 608
+        sparsed_feature2 = self.depth_layer2(sparsed_feature1, geo_s2, geo_s2)  # b 32 176 608
 
         sparsed_feature2_plus = torch.cat([rgb_feature2_plus, sparsed_feature2], 1)
-        sparsed_feature3 = self.depth_layer3(sparsed_feature2_plus, geo_s2, geo_s3) # b 64 88 304
-        sparsed_feature4 = self.depth_layer4(sparsed_feature3, geo_s3, geo_s3) # b 64 88 304
+        sparsed_feature3 = self.depth_layer3(sparsed_feature2_plus, geo_s2, geo_s3)  # b 64 88 304
+        sparsed_feature4 = self.depth_layer4(sparsed_feature3, geo_s3, geo_s3)  # b 64 88 304
 
         sparsed_feature4_plus = torch.cat([rgb_feature4_plus, sparsed_feature4], 1)
-        sparsed_feature5 = self.depth_layer5(sparsed_feature4_plus, geo_s3, geo_s4) # b 128 44 152
-        sparsed_feature6 = self.depth_layer6(sparsed_feature5, geo_s4, geo_s4) # b 128 44 152
+        sparsed_feature5 = self.depth_layer5(sparsed_feature4_plus, geo_s3, geo_s4)  # b 128 44 152
+        sparsed_feature6 = self.depth_layer6(sparsed_feature5, geo_s4, geo_s4)  # b 128 44 152
 
         sparsed_feature6_plus = torch.cat([rgb_feature6_plus, sparsed_feature6], 1)
-        sparsed_feature7 = self.depth_layer7(sparsed_feature6_plus, geo_s4, geo_s5) # b 256 22 76
-        sparsed_feature8 = self.depth_layer8(sparsed_feature7, geo_s5, geo_s5) # b 256 22 76
+        sparsed_feature7 = self.depth_layer7(sparsed_feature6_plus, geo_s4, geo_s5)  # b 256 22 76
+        sparsed_feature8 = self.depth_layer8(sparsed_feature7, geo_s5, geo_s5)  # b 256 22 76
 
         sparsed_feature8_plus = torch.cat([rgb_feature8_plus, sparsed_feature8], 1)
-        sparsed_feature9 = self.depth_layer9(sparsed_feature8_plus, geo_s5, geo_s6) # b 512 11 38
-        sparsed_feature10 = self.depth_layer10(sparsed_feature9, geo_s6, geo_s6) # b 512 11 38
+        sparsed_feature9 = self.depth_layer9(sparsed_feature8_plus, geo_s5, geo_s6)  # b 512 11 38
+        sparsed_feature10 = self.depth_layer10(sparsed_feature9, geo_s6, geo_s6)  # b 512 11 38
 
         # -----------------------------------------------------------------------------------------
 
@@ -221,24 +232,27 @@ class ENet(nn.Module):
         d_depth, d_conf = torch.chunk(depth_output, 2, dim=1)
 
         rgb_conf, d_conf = torch.chunk(self.softmax(torch.cat((rgb_conf, d_conf), dim=1)), 2, dim=1)
-        output = rgb_conf*rgb_depth + d_conf*d_depth
+        output = rgb_conf * rgb_depth + d_conf * d_depth
 
-        if(self.args.network_model == 'e'):
+        if (self.args.network_model == 'e'):
             return rgb_depth, d_depth, output
-        elif(self.args.dilation_rate == 1):
-            return torch.cat((rgb_feature0_plus, decoder_feature5),1), output
+        elif (self.args.dilation_rate == 1):
+            return torch.cat((rgb_feature0_plus, decoder_feature5), 1), output
         elif (self.args.dilation_rate == 2):
-            return torch.cat((rgb_feature0_plus, decoder_feature5), 1), torch.cat((rgb_feature2_plus, decoder_feature4),1), output
+            return torch.cat((rgb_feature0_plus, decoder_feature5), 1), torch.cat((rgb_feature2_plus, decoder_feature4),
+                                                                                  1), output
         elif (self.args.dilation_rate == 4):
-            return torch.cat((rgb_feature0_plus, decoder_feature5), 1), torch.cat((rgb_feature2_plus, decoder_feature4),1),\
+            return torch.cat((rgb_feature0_plus, decoder_feature5), 1), torch.cat((rgb_feature2_plus, decoder_feature4),
+                                                                                  1), \
                    torch.cat((rgb_feature4_plus, decoder_feature3), 1), output
+
 
 class PENet_C1(nn.Module):
     def __init__(self, args):
         super(PENet_C1, self).__init__()
 
         self.backbone = ENet(args)
-        #self.backbone = Bone()
+        # self.backbone = Bone()
         self.mask_layer = convbn(64, 3)
 
         self.kernel_conf_layer = convbn(64, 3)
@@ -288,16 +302,16 @@ class PENet_C1(nn.Module):
         weights_init(self)
 
     def forward(self, input):
-        #rgb = input['rgb']
+        # rgb = input['rgb']
         d = input['d']
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
 
-        feature, coarse_depth= self.backbone(input)
+        feature, coarse_depth = self.backbone(input)
 
         mask = self.mask_layer(feature)
         mask = torch.sigmoid(mask)
 
-        mask = mask*valid_mask
+        mask = mask * valid_mask
         mask3 = mask[:, 0:1, :, :]
         mask5 = mask[:, 1:2, :, :]
         mask7 = mask[:, 2:3, :, :]
@@ -320,7 +334,7 @@ class PENet_C1(nn.Module):
         guide5 = self.iter_guide_layer5(feature)
         guide7 = self.iter_guide_layer7(feature)
 
-        #init
+        # init
         depth = coarse_depth
         depth3 = depth
         depth5 = depth
@@ -330,54 +344,55 @@ class PENet_C1(nn.Module):
         d5_list = [i for i in range(4)]
         d7_list = [i for i in range(4)]
 
-        #prop
+        # prop
         guide3 = kernel_trans(guide3, self.encoder3)
         guide5 = kernel_trans(guide5, self.encoder5)
         guide7 = kernel_trans(guide7, self.encoder7)
 
         for i in range(12):
             depth3 = self.CSPN3(guide3, depth3, depth)
-            depth3 = mask3*d + (1-mask3)*depth3
+            depth3 = mask3 * d + (1 - mask3) * depth3
             depth5 = self.CSPN5(guide5, depth5, depth)
-            depth5 = mask5*d + (1-mask5)*depth5
+            depth5 = mask5 * d + (1 - mask5) * depth5
             depth7 = self.CSPN7(guide7, depth7, depth)
-            depth7 = mask7*d + (1-mask7)*depth7
+            depth7 = mask7 * d + (1 - mask7) * depth7
 
-            if(i==2):
+            if (i == 2):
                 d3_list[0] = depth3
                 d5_list[0] = depth5
                 d7_list[0] = depth7
 
-            if(i==5):
+            if (i == 5):
                 d3_list[1] = depth3
                 d5_list[1] = depth5
                 d7_list[1] = depth7
 
-            if(i==8):
+            if (i == 8):
                 d3_list[2] = depth3
                 d5_list[2] = depth5
                 d7_list[2] = depth7
 
-            if(i==11):
+            if (i == 11):
                 d3_list[3] = depth3
                 d5_list[3] = depth5
                 d7_list[3] = depth7
 
         refined_depth = \
-        d3_list[0] * (kernel_conf3 * conf3[:, 0:1, :, :]) + \
-        d3_list[1] * (kernel_conf3 * conf3[:, 1:2, :, :]) + \
-        d3_list[2] * (kernel_conf3 * conf3[:, 2:3, :, :]) + \
-        d3_list[3] * (kernel_conf3 * conf3[:, 3:4, :, :]) + \
-        d5_list[0] * (kernel_conf5 * conf5[:, 0:1, :, :]) + \
-        d5_list[1] * (kernel_conf5 * conf5[:, 1:2, :, :]) + \
-        d5_list[2] * (kernel_conf5 * conf5[:, 2:3, :, :]) + \
-        d5_list[3] * (kernel_conf5 * conf5[:, 3:4, :, :]) + \
-        d7_list[0] * (kernel_conf7 * conf7[:, 0:1, :, :]) + \
-        d7_list[1] * (kernel_conf7 * conf7[:, 1:2, :, :]) + \
-        d7_list[2] * (kernel_conf7 * conf7[:, 2:3, :, :]) + \
-        d7_list[3] * (kernel_conf7 * conf7[:, 3:4, :, :])
+            d3_list[0] * (kernel_conf3 * conf3[:, 0:1, :, :]) + \
+            d3_list[1] * (kernel_conf3 * conf3[:, 1:2, :, :]) + \
+            d3_list[2] * (kernel_conf3 * conf3[:, 2:3, :, :]) + \
+            d3_list[3] * (kernel_conf3 * conf3[:, 3:4, :, :]) + \
+            d5_list[0] * (kernel_conf5 * conf5[:, 0:1, :, :]) + \
+            d5_list[1] * (kernel_conf5 * conf5[:, 1:2, :, :]) + \
+            d5_list[2] * (kernel_conf5 * conf5[:, 2:3, :, :]) + \
+            d5_list[3] * (kernel_conf5 * conf5[:, 3:4, :, :]) + \
+            d7_list[0] * (kernel_conf7 * conf7[:, 0:1, :, :]) + \
+            d7_list[1] * (kernel_conf7 * conf7[:, 1:2, :, :]) + \
+            d7_list[2] * (kernel_conf7 * conf7[:, 2:3, :, :]) + \
+            d7_list[3] * (kernel_conf7 * conf7[:, 3:4, :, :])
 
         return refined_depth
+
 
 class PENet_C2(nn.Module):
     def __init__(self, args):
@@ -447,7 +462,7 @@ class PENet_C2(nn.Module):
     def forward(self, input):
 
         d = input['d']
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
 
         feature_s1, feature_s2, coarse_depth = self.backbone(input)
         depth = coarse_depth
@@ -455,7 +470,7 @@ class PENet_C2(nn.Module):
         d_s2, valid_mask_s2 = self.downsample(d, valid_mask)
         mask_s2 = self.mask_layer_s2(feature_s2)
         mask_s2 = torch.sigmoid(mask_s2)
-        mask_s2 = mask_s2*valid_mask_s2
+        mask_s2 = mask_s2 * valid_mask_s2
 
         kernel_conf_s2 = self.kernel_conf_layer_s2(feature_s2)
         kernel_conf_s2 = self.softmax(kernel_conf_s2)
@@ -499,29 +514,30 @@ class PENet_C2(nn.Module):
 
         for i in range(6):
             depth3 = self.CSPN3_s2(guide3_s2, depth3, coarse_depth)
-            depth3 = mask_s2*depth_s2 + (1-mask_s2)*depth3
+            depth3 = mask_s2 * depth_s2 + (1 - mask_s2) * depth3
             depth5 = self.CSPN5_s2(guide5_s2, depth5, coarse_depth)
-            depth5 = mask_s2*depth_s2 + (1-mask_s2)*depth5
+            depth5 = mask_s2 * depth_s2 + (1 - mask_s2) * depth5
             depth7 = self.CSPN7_s2(guide7_s2, depth7, coarse_depth)
-            depth7 = mask_s2*depth_s2 + (1-mask_s2)*depth7
+            depth7 = mask_s2 * depth_s2 + (1 - mask_s2) * depth7
 
-        depth_s2 = kernel_conf3_s2*depth3 + kernel_conf5_s2*depth5 + kernel_conf7_s2*depth7
+        depth_s2 = kernel_conf3_s2 * depth3 + kernel_conf5_s2 * depth5 + kernel_conf7_s2 * depth7
         refined_depth_s2 = depth_s2
 
         depth3 = depth5 = depth7 = refined_depth_s2
 
-        #prop
+        # prop
         for i in range(6):
             depth3 = self.CSPN3(guide3, depth3, depth_s2)
-            depth3 = mask*d + (1-mask)*depth3
+            depth3 = mask * d + (1 - mask) * depth3
             depth5 = self.CSPN5(guide5, depth5, depth_s2)
-            depth5 = mask*d + (1-mask)*depth5
+            depth5 = mask * d + (1 - mask) * depth5
             depth7 = self.CSPN7(guide7, depth7, depth_s2)
-            depth7 = mask*d + (1-mask)*depth7
+            depth7 = mask * d + (1 - mask) * depth7
 
-        refined_depth = kernel_conf3*depth3 + kernel_conf5*depth5 + kernel_conf7*depth7
+        refined_depth = kernel_conf3 * depth3 + kernel_conf5 * depth5 + kernel_conf7 * depth7
 
         return refined_depth
+
 
 class PENet_C4(nn.Module):
     def __init__(self, args):
@@ -603,9 +619,9 @@ class PENet_C4(nn.Module):
         weights_init(self)
 
     def forward(self, input):
-        #rgb = input['rgb']
+        # rgb = input['rgb']
         d = input['d']
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
 
         feature_s1, feature_s2, feature_s3, coarse_depth = self.backbone(input)
         depth = coarse_depth
@@ -613,7 +629,7 @@ class PENet_C4(nn.Module):
         d_s2, valid_mask_s2 = self.downsample(d, valid_mask)
         d_s3, valid_mask_s3 = self.downsample(d_s2, valid_mask_s2)
 
-        #s3
+        # s3
         mask_s3 = self.mask_layer_s3(feature_s3)
         mask_s3 = torch.sigmoid(mask_s3)
         mask_s3 = mask_s3 * valid_mask_s3
@@ -634,9 +650,9 @@ class PENet_C4(nn.Module):
         guide5_s3 = kernel_trans(guide5_s3, self.encoder5)
         guide7_s3 = kernel_trans(guide7_s3, self.encoder7)
 
-        guide3_s3 = prop_mask_s3*guide3_s3
-        guide5_s3 = prop_mask_s3*guide5_s3
-        guide7_s3 = prop_mask_s3*guide7_s3
+        guide3_s3 = prop_mask_s3 * guide3_s3
+        guide5_s3 = prop_mask_s3 * guide5_s3
+        guide7_s3 = prop_mask_s3 * guide7_s3
 
         guide3_s3 = self.nnupsample4(guide3_s3)
         guide5_s3 = self.nnupsample4(guide5_s3)
@@ -657,10 +673,10 @@ class PENet_C4(nn.Module):
         depth_s3 = kernel_conf3_s3 * depth3 + kernel_conf5_s3 * depth5 + kernel_conf7_s3 * depth7
         refined_depth_s3 = depth_s3
 
-        #s2
+        # s2
         mask_s2 = self.mask_layer_s2(feature_s2)
         mask_s2 = torch.sigmoid(mask_s2)
-        mask_s2 = mask_s2*valid_mask_s2
+        mask_s2 = mask_s2 * valid_mask_s2
         prop_mask_s2 = self.prop_mask_layer_s2(feature_s2)
         prop_mask_s2 = torch.sigmoid(prop_mask_s2)
 
@@ -678,9 +694,9 @@ class PENet_C4(nn.Module):
         guide5_s2 = kernel_trans(guide5_s2, self.encoder5)
         guide7_s2 = kernel_trans(guide7_s2, self.encoder7)
 
-        guide3_s2 = prop_mask_s2*guide3_s2
-        guide5_s2 = prop_mask_s2*guide5_s2
-        guide7_s2 = prop_mask_s2*guide7_s2
+        guide3_s2 = prop_mask_s2 * guide3_s2
+        guide5_s2 = prop_mask_s2 * guide5_s2
+        guide7_s2 = prop_mask_s2 * guide7_s2
 
         guide3_s2 = self.nnupsample(guide3_s2)
         guide5_s2 = self.nnupsample(guide5_s2)
@@ -692,19 +708,19 @@ class PENet_C4(nn.Module):
 
         for i in range(4):
             depth3 = self.CSPN3_s2(guide3_s2, depth3, depth_s3)
-            depth3 = mask_s2*depth_s2 + (1-mask_s2)*depth3
+            depth3 = mask_s2 * depth_s2 + (1 - mask_s2) * depth3
             depth5 = self.CSPN5_s2(guide5_s2, depth5, depth_s3)
-            depth5 = mask_s2*depth_s2 + (1-mask_s2)*depth5
+            depth5 = mask_s2 * depth_s2 + (1 - mask_s2) * depth5
             depth7 = self.CSPN7_s2(guide7_s2, depth7, depth_s3)
-            depth7 = mask_s2*depth_s2 + (1-mask_s2)*depth7
+            depth7 = mask_s2 * depth_s2 + (1 - mask_s2) * depth7
 
-        depth_s2 = kernel_conf3_s2*depth3 + kernel_conf5_s2*depth5 + kernel_conf7_s2*depth7
+        depth_s2 = kernel_conf3_s2 * depth3 + kernel_conf5_s2 * depth5 + kernel_conf7_s2 * depth7
         refined_depth_s2 = depth_s2
 
-        #s1
+        # s1
         mask = self.mask_layer(feature_s1)
         mask = torch.sigmoid(mask)
-        mask = mask*valid_mask
+        mask = mask * valid_mask
         prop_mask = self.prop_mask_layer(feature_s1)
         prop_mask = torch.sigmoid(prop_mask)
 
@@ -722,22 +738,23 @@ class PENet_C4(nn.Module):
         guide5 = kernel_trans(guide5, self.encoder5)
         guide7 = kernel_trans(guide7, self.encoder7)
 
-        guide3 = prop_mask*guide3
-        guide5 = prop_mask*guide5
-        guide7 = prop_mask*guide7
+        guide3 = prop_mask * guide3
+        guide5 = prop_mask * guide5
+        guide7 = prop_mask * guide7
 
         depth3 = depth5 = depth7 = refined_depth_s2
 
         for i in range(4):
             depth3 = self.CSPN3(guide3, depth3, depth_s2)
-            depth3 = mask*d + (1-mask)*depth3
+            depth3 = mask * d + (1 - mask) * depth3
             depth5 = self.CSPN5(guide5, depth5, depth_s2)
-            depth5 = mask*d + (1-mask)*depth5
+            depth5 = mask * d + (1 - mask) * depth5
             depth7 = self.CSPN7(guide7, depth7, depth_s2)
-            depth7 = mask*d + (1-mask)*depth7
+            depth7 = mask * d + (1 - mask) * depth7
 
-        refined_depth = kernel_conf3*depth3 + kernel_conf5*depth5 + kernel_conf7*depth7
+        refined_depth = kernel_conf3 * depth3 + kernel_conf5 * depth5 + kernel_conf7 * depth7
         return refined_depth
+
 
 class PENet_C1_train(nn.Module):
     def __init__(self, args):
@@ -759,15 +776,15 @@ class PENet_C1_train(nn.Module):
         weights_init(self)
 
     def forward(self, input):
-        #rgb = input['rgb']
+        # rgb = input['rgb']
         d = input['d']
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
 
         feature, coarse_depth = self.backbone(input)
 
         mask = self.mask_layer(feature)
         mask = torch.sigmoid(mask)
-        mask = mask*valid_mask
+        mask = mask * valid_mask
         mask3 = mask[:, 0:1, :, :]
         mask5 = mask[:, 1:2, :, :]
         mask7 = mask[:, 2:3, :, :]
@@ -786,11 +803,11 @@ class PENet_C1_train(nn.Module):
         conf5 = self.softmax(conf5)
         conf7 = self.softmax(conf7)
 
-        #guide3 = self.iter_guide_layer3(feature)
-        #guide5 = self.iter_guide_layer5(feature)
-        #guide7 = self.iter_guide_layer7(feature)
+        # guide3 = self.iter_guide_layer3(feature)
+        # guide5 = self.iter_guide_layer5(feature)
+        # guide7 = self.iter_guide_layer7(feature)
 
-        #init
+        # init
         depth = coarse_depth
         depth3 = depth
         depth5 = depth
@@ -800,54 +817,55 @@ class PENet_C1_train(nn.Module):
         d5_list = [i for i in range(4)]
         d7_list = [i for i in range(4)]
 
-        #prop
+        # prop
         guide3 = self.iter_guide_layer3(feature)
         guide5 = self.iter_guide_layer5(feature)
         guide7 = self.iter_guide_layer7(feature)
 
         for i in range(12):
             depth3 = self.CSPN3(guide3, depth3, depth)
-            depth3 = mask3*d + (1-mask3)*depth3
+            depth3 = mask3 * d + (1 - mask3) * depth3
             depth5 = self.CSPN5(guide5, depth5, depth)
-            depth5 = mask5*d + (1-mask5)*depth5
+            depth5 = mask5 * d + (1 - mask5) * depth5
             depth7 = self.CSPN7(guide7, depth7, depth)
-            depth7 = mask7*d + (1-mask7)*depth7
+            depth7 = mask7 * d + (1 - mask7) * depth7
 
-            if(i==2):
+            if (i == 2):
                 d3_list[0] = depth3
                 d5_list[0] = depth5
                 d7_list[0] = depth7
 
-            if(i==5):
+            if (i == 5):
                 d3_list[1] = depth3
                 d5_list[1] = depth5
                 d7_list[1] = depth7
 
-            if(i==8):
+            if (i == 8):
                 d3_list[2] = depth3
                 d5_list[2] = depth5
                 d7_list[2] = depth7
 
-            if(i==11):
+            if (i == 11):
                 d3_list[3] = depth3
                 d5_list[3] = depth5
                 d7_list[3] = depth7
 
         refined_depth = \
-        d3_list[0] * (kernel_conf3 * conf3[:, 0:1, :, :]) + \
-        d3_list[1] * (kernel_conf3 * conf3[:, 1:2, :, :]) + \
-        d3_list[2] * (kernel_conf3 * conf3[:, 2:3, :, :]) + \
-        d3_list[3] * (kernel_conf3 * conf3[:, 3:4, :, :]) + \
-        d5_list[0] * (kernel_conf5 * conf5[:, 0:1, :, :]) + \
-        d5_list[1] * (kernel_conf5 * conf5[:, 1:2, :, :]) + \
-        d5_list[2] * (kernel_conf5 * conf5[:, 2:3, :, :]) + \
-        d5_list[3] * (kernel_conf5 * conf5[:, 3:4, :, :]) + \
-        d7_list[0] * (kernel_conf7 * conf7[:, 0:1, :, :]) + \
-        d7_list[1] * (kernel_conf7 * conf7[:, 1:2, :, :]) + \
-        d7_list[2] * (kernel_conf7 * conf7[:, 2:3, :, :]) + \
-        d7_list[3] * (kernel_conf7 * conf7[:, 3:4, :, :])
+            d3_list[0] * (kernel_conf3 * conf3[:, 0:1, :, :]) + \
+            d3_list[1] * (kernel_conf3 * conf3[:, 1:2, :, :]) + \
+            d3_list[2] * (kernel_conf3 * conf3[:, 2:3, :, :]) + \
+            d3_list[3] * (kernel_conf3 * conf3[:, 3:4, :, :]) + \
+            d5_list[0] * (kernel_conf5 * conf5[:, 0:1, :, :]) + \
+            d5_list[1] * (kernel_conf5 * conf5[:, 1:2, :, :]) + \
+            d5_list[2] * (kernel_conf5 * conf5[:, 2:3, :, :]) + \
+            d5_list[3] * (kernel_conf5 * conf5[:, 3:4, :, :]) + \
+            d7_list[0] * (kernel_conf7 * conf7[:, 0:1, :, :]) + \
+            d7_list[1] * (kernel_conf7 * conf7[:, 1:2, :, :]) + \
+            d7_list[2] * (kernel_conf7 * conf7[:, 2:3, :, :]) + \
+            d7_list[3] * (kernel_conf7 * conf7[:, 3:4, :, :])
 
         return refined_depth
+
 
 class PENet_C2_train(nn.Module):
     def __init__(self, args):
@@ -881,7 +899,7 @@ class PENet_C2_train(nn.Module):
 
     def forward(self, input):
         d = input['d']
-        valid_mask = torch.where(d>0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
+        valid_mask = torch.where(d > 0, torch.full_like(d, 1.0), torch.full_like(d, 0.0))
 
         feature_s1, feature_s2, coarse_depth = self.backbone(input)
         depth = coarse_depth
@@ -889,7 +907,7 @@ class PENet_C2_train(nn.Module):
         d_s2, valid_mask_s2 = self.downsample(d, valid_mask)
         mask_s2 = self.mask_layer_s2(feature_s2)
         mask_s2 = torch.sigmoid(mask_s2)
-        mask_s2 = mask_s2*valid_mask_s2
+        mask_s2 = mask_s2 * valid_mask_s2
 
         kernel_conf_s2 = self.kernel_conf_layer_s2(feature_s2)
         kernel_conf_s2 = self.softmax(kernel_conf_s2)
@@ -899,7 +917,7 @@ class PENet_C2_train(nn.Module):
 
         mask = self.mask_layer(feature_s1)
         mask = torch.sigmoid(mask)
-        mask = mask*valid_mask
+        mask = mask * valid_mask
 
         kernel_conf = self.kernel_conf_layer(feature_s1)
         kernel_conf = self.softmax(kernel_conf)
@@ -930,58 +948,58 @@ class PENet_C2_train(nn.Module):
 
         for i in range(6):
             depth3_s2_00 = self.CSPN3(guide3_s2, depth3_s2_00, depth_s2_00_h0)
-            depth3_s2_00 = mask_s2*d_s2 + (1-mask_s2)*depth3_s2_00
+            depth3_s2_00 = mask_s2 * d_s2 + (1 - mask_s2) * depth3_s2_00
             depth5_s2_00 = self.CSPN5(guide5_s2, depth5_s2_00, depth_s2_00_h0)
-            depth5_s2_00 = mask_s2*d_s2 + (1-mask_s2)*depth5_s2_00
+            depth5_s2_00 = mask_s2 * d_s2 + (1 - mask_s2) * depth5_s2_00
             depth7_s2_00 = self.CSPN7(guide7_s2, depth7_s2_00, depth_s2_00_h0)
-            depth7_s2_00 = mask_s2*d_s2 + (1-mask_s2)*depth7_s2_00
+            depth7_s2_00 = mask_s2 * d_s2 + (1 - mask_s2) * depth7_s2_00
 
             depth3_s2_01 = self.CSPN3(guide3_s2, depth3_s2_01, depth_s2_01_h0)
-            depth3_s2_01 = mask_s2*d_s2 + (1-mask_s2)*depth3_s2_01
+            depth3_s2_01 = mask_s2 * d_s2 + (1 - mask_s2) * depth3_s2_01
             depth5_s2_01 = self.CSPN5(guide5_s2, depth5_s2_01, depth_s2_01_h0)
-            depth5_s2_01 = mask_s2*d_s2 + (1-mask_s2)*depth5_s2_01
+            depth5_s2_01 = mask_s2 * d_s2 + (1 - mask_s2) * depth5_s2_01
             depth7_s2_01 = self.CSPN7(guide7_s2, depth7_s2_01, depth_s2_01_h0)
-            depth7_s2_01 = mask_s2*d_s2 + (1-mask_s2)*depth7_s2_01
+            depth7_s2_01 = mask_s2 * d_s2 + (1 - mask_s2) * depth7_s2_01
 
             depth3_s2_10 = self.CSPN3(guide3_s2, depth3_s2_10, depth_s2_10_h0)
-            depth3_s2_10 = mask_s2*d_s2 + (1-mask_s2)*depth3_s2_10
+            depth3_s2_10 = mask_s2 * d_s2 + (1 - mask_s2) * depth3_s2_10
             depth5_s2_10 = self.CSPN5(guide5_s2, depth5_s2_10, depth_s2_10_h0)
-            depth5_s2_10 = mask_s2*d_s2 + (1-mask_s2)*depth5_s2_10
+            depth5_s2_10 = mask_s2 * d_s2 + (1 - mask_s2) * depth5_s2_10
             depth7_s2_10 = self.CSPN7(guide7_s2, depth7_s2_10, depth_s2_10_h0)
-            depth7_s2_10 = mask_s2*d_s2 + (1-mask_s2)*depth7_s2_10
+            depth7_s2_10 = mask_s2 * d_s2 + (1 - mask_s2) * depth7_s2_10
 
             depth3_s2_11 = self.CSPN3(guide3_s2, depth3_s2_11, depth_s2_11_h0)
-            depth3_s2_11 = mask_s2*d_s2 + (1-mask_s2)*depth3_s2_11
+            depth3_s2_11 = mask_s2 * d_s2 + (1 - mask_s2) * depth3_s2_11
             depth5_s2_11 = self.CSPN5(guide5_s2, depth5_s2_11, depth_s2_11_h0)
-            depth5_s2_11 = mask_s2*d_s2 + (1-mask_s2)*depth5_s2_11
+            depth5_s2_11 = mask_s2 * d_s2 + (1 - mask_s2) * depth5_s2_11
             depth7_s2_11 = self.CSPN7(guide7_s2, depth7_s2_11, depth_s2_11_h0)
-            depth7_s2_11 = mask_s2*d_s2 + (1-mask_s2)*depth7_s2_11
+            depth7_s2_11 = mask_s2 * d_s2 + (1 - mask_s2) * depth7_s2_11
 
-        depth_s2_00 = kernel_conf3_s2*depth3_s2_00 + kernel_conf5_s2*depth5_s2_00 + kernel_conf7_s2*depth7_s2_00
-        depth_s2_01 = kernel_conf3_s2*depth3_s2_01 + kernel_conf5_s2*depth5_s2_01 + kernel_conf7_s2*depth7_s2_01
-        depth_s2_10 = kernel_conf3_s2*depth3_s2_10 + kernel_conf5_s2*depth5_s2_10 + kernel_conf7_s2*depth7_s2_10
-        depth_s2_11 = kernel_conf3_s2*depth3_s2_11 + kernel_conf5_s2*depth5_s2_11 + kernel_conf7_s2*depth7_s2_11
+        depth_s2_00 = kernel_conf3_s2 * depth3_s2_00 + kernel_conf5_s2 * depth5_s2_00 + kernel_conf7_s2 * depth7_s2_00
+        depth_s2_01 = kernel_conf3_s2 * depth3_s2_01 + kernel_conf5_s2 * depth5_s2_01 + kernel_conf7_s2 * depth7_s2_01
+        depth_s2_10 = kernel_conf3_s2 * depth3_s2_10 + kernel_conf5_s2 * depth5_s2_10 + kernel_conf7_s2 * depth7_s2_10
+        depth_s2_11 = kernel_conf3_s2 * depth3_s2_11 + kernel_conf5_s2 * depth5_s2_11 + kernel_conf7_s2 * depth7_s2_11
 
         depth_s2[:, :, 0::2, 0::2] = depth_s2_00
         depth_s2[:, :, 0::2, 1::2] = depth_s2_01
         depth_s2[:, :, 1::2, 0::2] = depth_s2_10
         depth_s2[:, :, 1::2, 1::2] = depth_s2_11
 
-        #feature_12 = torch.cat((feature_s1, self.upsample(self.dimhalf_s2(feature_s2))), 1)
-        #att_map_12 = self.softmax(self.att_12(feature_12))
-        refined_depth_s2 = depth*att_map_12[:, 0:1, :, :] + depth_s2*att_map_12[:, 1:2, :, :]
-        #refined_depth_s2 = depth
+        # feature_12 = torch.cat((feature_s1, self.upsample(self.dimhalf_s2(feature_s2))), 1)
+        # att_map_12 = self.softmax(self.att_12(feature_12))
+        refined_depth_s2 = depth * att_map_12[:, 0:1, :, :] + depth_s2 * att_map_12[:, 1:2, :, :]
+        # refined_depth_s2 = depth
 
         depth3 = depth5 = depth7 = refined_depth_s2
 
-        #prop
+        # prop
         for i in range(6):
             depth3 = self.CSPN3(guide3, depth3, depth)
-            depth3 = mask*d + (1-mask)*depth3
+            depth3 = mask * d + (1 - mask) * depth3
             depth5 = self.CSPN5(guide5, depth5, depth)
-            depth5 = mask*d + (1-mask)*depth5
+            depth5 = mask * d + (1 - mask) * depth5
             depth7 = self.CSPN7(guide7, depth7, depth)
-            depth7 = mask*d + (1-mask)*depth7
+            depth7 = mask * d + (1 - mask) * depth7
 
-        refined_depth = kernel_conf3*depth3 + kernel_conf5*depth5 + kernel_conf7*depth7
+        refined_depth = kernel_conf3 * depth3 + kernel_conf5 * depth5 + kernel_conf7 * depth7
         return refined_depth

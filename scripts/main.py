@@ -242,7 +242,6 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
             path_i = str_i.zfill(10) + '.png'
             path = os.path.join(args.data_folder_save, path_i)
             vis_utils.save_depth_as_uint16png_upload(pred, path)
-
         if (not args.evaluate):
             gpu_time = time.time() - start
         # measure accuracy and record loss
@@ -284,7 +283,6 @@ def main():
             checkpoint = torch.load(args.evaluate, map_location=device)
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
-            args.val = args_new.val
             is_eval = True
             print("Completed.")
         else:
@@ -299,7 +297,6 @@ def main():
             checkpoint = torch.load(args.resume, map_location=device)
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
-            args.val = args_new.val
             print("Completed. Resuming from epoch {}.".format(
                 checkpoint['epoch']))
         else:
