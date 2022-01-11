@@ -95,7 +95,7 @@ parser.add_argument('--data-folder-rgb',
                     metavar='PATH',
                     help='data folder rgb (default: none)')
 parser.add_argument('--data-folder-save',
-                    default='../results/',
+                    default='../results',
                     type=str,
                     metavar='PATH',
                     help='data folder test results(default: none)')

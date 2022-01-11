@@ -125,7 +125,7 @@ def save_depth_as_uint16png_upload(img, filename):
 
 def save_depth_as_uint8colored(img, filename):
     # from tensor
-    img = validcrop(img)
+    # img = validcrop(img)
     img = np.squeeze(img.data.cpu().numpy())
     img = depth_colorize(img)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -133,7 +133,7 @@ def save_depth_as_uint8colored(img, filename):
 
 
 def save_mask_as_uint8colored(img, filename, colored=True, normalized=True):
-    img = validcrop(img)
+    # img = validcrop(img)
     img = np.squeeze(img.data.cpu().numpy())
     if (normalized == False):
         img = (img - np.min(img)) / (np.max(img) - np.min(img))
@@ -147,7 +147,7 @@ def save_mask_as_uint8colored(img, filename, colored=True, normalized=True):
 
 
 def save_feature_as_uint8colored(img, filename):
-    img = validcrop(img)
+    # img = validcrop(img)
     img = np.squeeze(img.data.cpu().numpy())
     img = feature_colorize(img)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
