@@ -85,17 +85,17 @@ parser.add_argument('--resume',
                     metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--data-folder',
-                    default='/data/dataset/kitti_depth/depth',
+                    default='/home/whn/data/carla/Data',
                     type=str,
                     metavar='PATH',
                     help='data folder (default: none)')
 parser.add_argument('--data-folder-rgb',
-                    default='/data/dataset/kitti_raw',
+                    default='/home/whn/data/carla/Data',
                     type=str,
                     metavar='PATH',
                     help='data folder rgb (default: none)')
 parser.add_argument('--data-folder-save',
-                    default='/data/dataset/kitti_depth/submit_test/',
+                    default='../results/',
                     type=str,
                     metavar='PATH',
                     help='data folder test results(default: none)')
@@ -239,9 +239,10 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
 
         if mode == "test":
             str_i = str(i)
-            path_i = str_i.zfill(10) + '.png'
+            path_i = str_i.zfill(4) + '.png'
             path = os.path.join(args.data_folder_save, path_i)
-            vis_utils.save_depth_as_uint16png_upload(pred, path)
+            vis_utils.save_depth_as_uint8colored(pred, path)
+            # vis_utils.save_depth_as_uint16png_upload(pred, path)
         if (not args.evaluate):
             gpu_time = time.time() - start
         # measure accuracy and record loss
