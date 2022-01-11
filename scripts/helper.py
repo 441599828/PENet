@@ -64,13 +64,13 @@ class logger:
                 'REL={blk_avg.absrel:.3f}({average.absrel:.3f})\n\t'
                 'Lg10={blk_avg.lg10:.3f}({average.lg10:.3f}) '
                 'Photometric={blk_avg.photometric:.3f}({average.photometric:.3f}) '
-                .format(epoch,
-                        i + 1,
-                        n_set,
-                        lr=lr,
-                        blk_avg=blk_avg,
-                        average=avg,
-                        split=split.capitalize()))
+                    .format(epoch,
+                            i + 1,
+                            n_set,
+                            lr=lr,
+                            blk_avg=blk_avg,
+                            average=avg,
+                            split=split.capitalize()))
             blk_avg_meter.reset(False)
 
     def conditional_save_info(self, split, average_meter, epoch):
@@ -135,7 +135,8 @@ class logger:
             else:
                 return self.output_directory + '/comparison_' + str(epoch) + '.png'
 
-    def conditional_save_img_comparison(self, mode, i, ele, pred, epoch, predrgb=None, predg=None, extra=None, extra2=None, extrargb=None):
+    def conditional_save_img_comparison(self, mode, i, ele, pred, epoch, predrgb=None, predg=None, extra=None,
+                                        extra2=None, extrargb=None):
         # save 8 images for visualization
         if mode == 'val' or mode == 'eval':
             skip = 100
@@ -215,8 +216,8 @@ def backup_source_code(backup_directory):
 
 def adjust_learning_rate(lr_init, optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 5 epochs"""
-    #lr = lr_init * (0.5**(epoch // 5))
-    #'''
+    # lr = lr_init * (0.5**(epoch // 5))
+    # '''
     lr = lr_init
     if (args.network_model == 'pe' and args.freeze_backbone == False):
         if (epoch >= 10):
@@ -236,11 +237,12 @@ def adjust_learning_rate(lr_init, optimizer, epoch, args):
             lr = lr_init * 0.1
         if (epoch >= 25):
             lr = lr_init * 0.01
-    #'''
+    # '''
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
+
 
 def save_checkpoint(state, is_best, epoch, output_directory):
     checkpoint_filename = os.path.join(output_directory,
@@ -259,11 +261,11 @@ def save_checkpoint(state, is_best, epoch, output_directory):
 def get_folder_name(args):
     current_time = time.strftime('%Y-%m-%d@%H-%M')
     return os.path.join(args.result,
-        'input={}.criterion={}.lr={}.bs={}.wd={}.jitter={}.time={}'.
-        format(args.input, args.criterion, \
-            args.lr, args.batch_size, args.weight_decay, \
-            args.jitter, current_time
-            ))
+                        'input={}.criterion={}.lr={}.bs={}.wd={}.jitter={}.time={}'.
+                        format(args.input, args.criterion, \
+                               args.lr, args.batch_size, args.weight_decay, \
+                               args.jitter, current_time
+                               ))
 
 
 avgpool = torch.nn.AvgPool2d(kernel_size=2, stride=2).cuda()

@@ -3,6 +3,7 @@ import torch.nn as nn
 
 loss_names = ['l1', 'l2']
 
+
 class MaskedMSELoss(nn.Module):
     def __init__(self):
         super(MaskedMSELoss, self).__init__()
@@ -12,7 +13,7 @@ class MaskedMSELoss(nn.Module):
         valid_mask = (target > 0).detach()
         diff = target - pred
         diff = diff[valid_mask]
-        self.loss = (diff**2).mean()
+        self.loss = (diff ** 2).mean()
         return self.loss
 
 
