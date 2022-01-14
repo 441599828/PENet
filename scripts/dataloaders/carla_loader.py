@@ -96,7 +96,7 @@ def depth_read(filename):
 def train_transform(rgb, sparse, target, position, args):
     do_flip = np.random.uniform(0.0, 1.0) < 0.5  # random horizontal flip
     transforms_list = [transforms.HorizontalFlip(do_flip),
-                       transforms.Resize((224, 224))]
+                       transforms.Resize((224.0, 224.0))]
     transform_geometric = transforms.Compose(transforms_list)
     sparse = transform_geometric(sparse)
     target = transform_geometric(target)
@@ -114,7 +114,7 @@ def train_transform(rgb, sparse, target, position, args):
 
 
 def no_transform(rgb, sparse, target, position, args):
-    transforms_list = [transforms.Resize((224, 224))]
+    transforms_list = [transforms.Resize((224.0, 224.0))]
     transform_geometric = transforms.Compose(transforms_list)
 
     sparse = transform_geometric(sparse)

@@ -175,7 +175,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
 
     torch.cuda.empty_cache()
     for i, batch_data in enumerate(loader):
-        # print(batch_data)
+        print(batch_data['rgb'].shape)
         dstart = time.time()
         batch_data = {
             key: val.to(device)
