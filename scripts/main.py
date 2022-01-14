@@ -7,7 +7,7 @@ import torch.optim
 import torch.utils.data
 import time
 
-from dataloaders.carla_loader import load_calib, input_options, CarlaDepth
+from dataloaders.carla_loader import load_calib, CarlaDepth
 from metrics import AverageMeter, Result
 import criteria
 import helper
@@ -99,12 +99,6 @@ parser.add_argument('--data-folder-save',
                     type=str,
                     metavar='PATH',
                     help='data folder test results(default: none)')
-parser.add_argument('-i',
-                    '--input',
-                    type=str,
-                    default='rgbd',
-                    choices=input_options,
-                    help='input: | '.join(input_options))
 parser.add_argument('--test',
                     type=str,
                     default="middle",
@@ -139,9 +133,9 @@ parser.add_argument('-d', '--dilation-rate', default="2", type=int,
 
 args = parser.parse_args()
 args.result = os.path.join('..', 'results')
-args.use_rgb = ('rgb' in args.input)
-args.use_d = 'd' in args.input
-args.use_g = 'g' in args.input
+args.use_rgb = True
+args.use_d = True
+args.use_g = False
 print(args)
 
 cuda = torch.cuda.is_available() and not args.cpu
@@ -181,13 +175,15 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
 
     torch.cuda.empty_cache()
     for i, batch_data in enumerate(loader):
+        # print(batch_data)
         dstart = time.time()
         batch_data = {
             key: val.to(device)
             for key, val in batch_data.items() if val is not None
         }
 
-        gt = batch_data['gt'] if mode != 'test' else None
+        # gt = batch_data['gt'] if mode != 'test' else None
+        gt = batch_data['gt']
         data_time = time.time() - dstart
 
         pred = None
@@ -261,7 +257,7 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
                                          block_average_meter, average_meter)
             logger.conditional_save_img_comparison(mode, i, batch_data, pred,
                                                    epoch)
-            logger.conditional_save_pred(mode, i, pred, epoch)
+            # logger.conditional_save_pred(mode, i, pred, epoch)
 
     avg = logger.conditional_save_info(mode, average_meter, epoch)
     is_best = logger.rank_conditional_save_best(mode, avg, epoch)

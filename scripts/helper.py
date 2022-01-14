@@ -261,8 +261,8 @@ def save_checkpoint(state, is_best, epoch, output_directory):
 def get_folder_name(args):
     current_time = time.strftime('%Y-%m-%d@%H-%M')
     return os.path.join(args.result,
-                        'input={}.criterion={}.lr={}.bs={}.wd={}.jitter={}.time={}'.
-                        format(args.input, args.criterion, \
+                        'criterion={}.lr={}.bs={}.wd={}.jitter={}.time={}'.
+                        format(args.criterion, \
                                args.lr, args.batch_size, args.weight_decay, \
                                args.jitter, current_time
                                ))
