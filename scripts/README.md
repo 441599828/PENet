@@ -20,4 +20,8 @@ pip install opencv-python
 
 # test in Carla
 
-compute the matrix: python main.py -b 1 -n pe --evaluate ../results/pe.pth.tar --data-folder /media/whn/新加卷/dataset/carla/Data --data-folder-rgb /media/whn/新加卷/dataset/carla/Data --savetest --test middle
+compute the matrix: 
+
+python main.py -b 1 -n pe --evaluate ../results/pe.pth.tar --data-folder /media/whn/新加卷/dataset/carla/Data --data-folder-rgb /media/whn/新加卷/dataset/carla/Data --savetest --test middle
+
+python main.py -b 1 -n pe --evaluate ../results/pe.pth.tar --data-folder /home/whn/data/carla/Data --data-folder-rgb /home/whn/data/carla/Data --savetest --test middle
