@@ -249,19 +249,19 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
         with torch.no_grad():
             mini_batch_size = next(iter(batch_data.values())).size(0)
             result = Result()
-            if mode != 'test':
-                result.evaluate(pred.data, gt.data, photometric_loss)
-                [
-                    m.update(result, gpu_time, data_time, mini_batch_size)
-                    for m in meters
-                ]
+            # if mode != 'test':
+            result.evaluate(pred.data, gt.data, photometric_loss)
+            [
+                m.update(result, gpu_time, data_time, mini_batch_size)
+                for m in meters
+            ]
 
-                if mode != 'train':
-                    logger.conditional_print(mode, i, epoch, lr, len(loader),
-                                             block_average_meter, average_meter)
-                logger.conditional_save_img_comparison(mode, i, batch_data, pred,
-                                                       epoch)
-                logger.conditional_save_pred(mode, i, pred, epoch)
+            if mode != 'train':
+                logger.conditional_print(mode, i, epoch, lr, len(loader),
+                                         block_average_meter, average_meter)
+            logger.conditional_save_img_comparison(mode, i, batch_data, pred,
+                                                   epoch)
+            logger.conditional_save_pred(mode, i, pred, epoch)
 
     avg = logger.conditional_save_info(mode, average_meter, epoch)
     is_best = logger.rank_conditional_save_best(mode, avg, epoch)
