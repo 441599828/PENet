@@ -14,12 +14,16 @@ from dataloaders import CoordConv
 
 
 def load_calib():
-    calib = open("dataloaders/carla_camera_K.txt", "r")
-    lines = calib.readlines()
-    P_rect_line = lines[0]
-    Proj_str = P_rect_line.split(":")[1].split(" ")[1:]
-    K = np.reshape(np.array([float(p) for p in Proj_str]),
-                   (3, 3)).astype(np.float32)
+    # calib = open("carla_camera_K.txt", "r")
+    # lines = calib.readlines()
+    # P_rect_line = lines[0]
+    # Proj_str = P_rect_line.split(":")[1].split(" ")[1:]
+    # K = np.reshape(np.array([float(p) for p in Proj_str]),
+    #    (3, 3)).astype(np.float32)
+    K = np.array([[392.87141785, 0.000000e+00, 512.0],
+                  [0.000000e+00, 392.87141785, 288.0],
+                  [0.000000e+00, 0.000000e+00, 1.000000e+00]],
+                 dtype=np.float32)
     # Resize data into 224*224
     K[0][0] = K[0][0] * (224 / 1024)
     K[0][2] = 224 / 2
@@ -44,23 +48,28 @@ def get_paths_and_transform(split, args):
     elif split == "test":
         if args.test == "easy":
             transform = no_transform
-            glob_d = os.path.join(args.data_folder, 'test_easy/sparsedepmap/*.png')
+            glob_d = os.path.join(args.data_folder,
+                                  'test_easy/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_easy/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_easy/rgb/*.jpg')
         elif args.test == "middle":
             transform = no_transform
-            glob_d = os.path.join(args.data_folder, 'test_middle/sparsedepmap/*.png')
+            glob_d = os.path.join(args.data_folder,
+                                  'test_middle/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_middle/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_middle/rgb/*.jpg')
         elif args.test == "hard":
             transform = no_transform
-            glob_d = os.path.join(args.data_folder, 'test_hard/sparsedepmap/*.png')
+            glob_d = os.path.join(args.data_folder,
+                                  'test_hard/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_hard/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_hard/rgb/*.jpg')
         elif args.test == "hardest":
             transform = no_transform
-            glob_d = os.path.join(args.data_folder, 'test_hardest/sparsedepmap/*.png')
-            glob_gt = os.path.join(args.data_folder, 'test_hardest/depth/*.png')
+            glob_d = os.path.join(args.data_folder,
+                                  'test_hardest/sparsedepmap/*.png')
+            glob_gt = os.path.join(args.data_folder,
+                                   'test_hardest/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_hardest/rgb/*.jpg')
     else:
         raise ValueError("Unrecognized split " + str(split))
@@ -95,16 +104,16 @@ def depth_read(filename):
 
 def train_transform(rgb, sparse, target, position, args):
     do_flip = np.random.uniform(0.0, 1.0) < 0.5  # random horizontal flip
-    transforms_list = [transforms.HorizontalFlip(do_flip),
-                       transforms.Resize((224.0, 224.0))]
+    transforms_list = [
+        transforms.HorizontalFlip(do_flip),
+        transforms.Resize((224.0, 224.0))
+    ]
     transform_geometric = transforms.Compose(transforms_list)
     sparse = transform_geometric(sparse)
     target = transform_geometric(target)
-    brightness = np.random.uniform(max(0, 1 - args.jitter),
-                                   1 + args.jitter)
+    brightness = np.random.uniform(max(0, 1 - args.jitter), 1 + args.jitter)
     contrast = np.random.uniform(max(0, 1 - args.jitter), 1 + args.jitter)
-    saturation = np.random.uniform(max(0, 1 - args.jitter),
-                                   1 + args.jitter)
+    saturation = np.random.uniform(max(0, 1 - args.jitter), 1 + args.jitter)
     transform_rgb = transforms.Compose([
         transforms.ColorJitter(brightness, contrast, saturation, 0),
         transform_geometric
@@ -128,6 +137,7 @@ to_float_tensor = lambda x: to_tensor(x).float()
 
 
 class CarlaDepth(data.Dataset):
+
     def __init__(self, split, args):
         self.args = args
         self.split = split
@@ -146,11 +156,18 @@ class CarlaDepth(data.Dataset):
     def __getitem__(self, index):
         rgb, sparse, target = self.__getraw__(index)
         # position = CoordConv.AddCoordsNp(self.args.val_h, self.args.val_w)
-        position = CoordConv.AddCoordsNp(rgb.shape[0], rgb.shape[1])
+        position = CoordConv.AddCoordsNp(224, 224)
         position = position.call()
-        rgb, sparse, target, position = self.transform(rgb, sparse, target, position, self.args)
+        rgb, sparse, target, position = self.transform(rgb, sparse, target,
+                                                       position, self.args)
 
-        candidates = {"rgb": rgb, "d": sparse, "gt": target, 'position': position, 'K': self.K}
+        candidates = {
+            "rgb": rgb,
+            "d": sparse,
+            "gt": target,
+            'position': position,
+            'K': self.K
+        }
 
         items = {
             key: to_float_tensor(val)
