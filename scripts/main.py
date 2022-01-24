@@ -27,8 +27,7 @@ parser.add_argument('-n',
                     type=str,
                     default="e",
                     choices=["e", "pe"],
-                    help='choose a model: enet or penet'
-                    )
+                    help='choose a model: enet or penet')
 parser.add_argument('--workers',
                     default=4,
                     type=int,
@@ -55,7 +54,7 @@ parser.add_argument('-c',
                     default='l2',
                     choices=criteria.loss_names,
                     help='loss function: | '.join(criteria.loss_names) +
-                         ' (default: l2)')
+                    ' (default: l2)')
 parser.add_argument('-b',
                     '--batch-size',
                     default=1,
@@ -108,26 +107,42 @@ parser.add_argument('--jitter',
                     type=float,
                     default=0.1,
                     help='color jitter for images')
-parser.add_argument('--rank-metric',
-                    type=str,
-                    default='rmse',
-                    choices=[m for m in dir(Result()) if not m.startswith('_')],
-                    help='metrics for which best result is saved')
+parser.add_argument(
+    '--rank-metric',
+    type=str,
+    default='rmse',
+    choices=[m for m in dir(Result()) if not m.startswith('_')],
+    help='metrics for which best result is saved')
 
 parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
-parser.add_argument('-f', '--freeze-backbone', action="store_true", default=False,
+parser.add_argument('-f',
+                    '--freeze-backbone',
+                    action="store_true",
+                    default=False,
                     help='freeze parameters in backbone')
-parser.add_argument('--savetest', action="store_true", default=False,
+parser.add_argument('--savetest',
+                    action="store_true",
+                    default=False,
                     help='save result kitti test dataset for submission')
-parser.add_argument('--cpu', action="store_true", default=False, help='run on cpu')
+parser.add_argument('--cpu',
+                    action="store_true",
+                    default=False,
+                    help='run on cpu')
 
 # geometric encoding
-parser.add_argument('-co', '--convolutional-layer-encoding', default="xyz", type=str,
-                    choices=["std", "z", "uv", "xyz"],
-                    help='information concatenated in encoder convolutional layers')
+parser.add_argument(
+    '-co',
+    '--convolutional-layer-encoding',
+    default="xyz",
+    type=str,
+    choices=["std", "z", "uv", "xyz"],
+    help='information concatenated in encoder convolutional layers')
 
 # dilated rate of DA-CSPN++
-parser.add_argument('-d', '--dilation-rate', default="2", type=int,
+parser.add_argument('-d',
+                    '--dilation-rate',
+                    default="2",
+                    type=int,
                     choices=[1, 2, 4],
                     help='CSPN++ dilation rate')
 
@@ -150,7 +165,7 @@ print("=> using '{}' for computation.".format(device))
 
 # define loss functions
 depth_criterion = criteria.MaskedMSELoss() if (
-        args.criterion == 'l2') else criteria.MaskedL1Loss()
+    args.criterion == 'l2') else criteria.MaskedL1Loss()
 
 # multi batch
 multi_batch_size = 1
@@ -165,10 +180,12 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
     meters = [block_average_meter, average_meter]
 
     # switch to appropriate mode
-    assert mode in ["train", "val", "eval", "test"], "unsupported mode: {}".format(mode)
+    assert mode in ["train", "val", "eval",
+                    "test"], "unsupported mode: {}".format(mode)
     if mode == 'train':
         model.train()
-        lr = helper.adjust_learning_rate(args.lr, optimizer, actual_epoch, args)
+        lr = helper.adjust_learning_rate(args.lr, optimizer, actual_epoch,
+                                         args)
     else:
         model.eval()
         lr = 0
@@ -221,7 +238,8 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
             if args.network_model == 'e':
                 st1_loss = depth_criterion(st1_pred, gt)
                 st2_loss = depth_criterion(st2_pred, gt)
-                loss = (1 - w_st1 - w_st2) * depth_loss + w_st1 * st1_loss + w_st2 * st2_loss
+                loss = (1 - w_st1 - w_st2
+                        ) * depth_loss + w_st1 * st1_loss + w_st2 * st2_loss
             else:
                 loss = depth_loss
 
@@ -229,7 +247,8 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
                 optimizer.zero_grad()
             loss.backward()
 
-            if i % multi_batch_size == (multi_batch_size - 1) or i == (len(loader) - 1):
+            if i % multi_batch_size == (multi_batch_size -
+                                        1) or i == (len(loader) - 1):
                 optimizer.step()
             print("loss:", loss, " epoch:", epoch, " ", i, "/", len(loader))
 
@@ -352,12 +371,11 @@ def main():
     test_loader = None
     if (args.savetest):
         test_dataset = CarlaDepth('test', args)
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset,
-            batch_size=1,
-            shuffle=False,
-            num_workers=1,
-            pin_memory=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset,
+                                                  batch_size=1,
+                                                  shuffle=False,
+                                                  num_workers=1,
+                                                  pin_memory=True)
 
         iterate("test", args, test_loader, model, None, logger, 0)
         return
@@ -385,7 +403,10 @@ def main():
         model_named_params = [
             p for _, p in model.named_parameters() if p.requires_grad
         ]
-        optimizer = torch.optim.Adam(model_named_params, lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.99))
+        optimizer = torch.optim.Adam(model_named_params,
+                                     lr=args.lr,
+                                     weight_decay=args.weight_decay,
+                                     betas=(0.9, 0.99))
     elif (args.network_model == 'pe'):
         model_bone_params = [
             p for _, p in model.backbone.named_parameters() if p.requires_grad
@@ -394,13 +415,23 @@ def main():
             p for _, p in model.named_parameters() if p.requires_grad
         ]
         model_new_params = list(set(model_new_params) - set(model_bone_params))
-        optimizer = torch.optim.Adam([{'params': model_bone_params, 'lr': args.lr / 10}, {'params': model_new_params}],
-                                     lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.99))
+        optimizer = torch.optim.Adam([{
+            'params': model_bone_params,
+            'lr': args.lr / 10
+        }, {
+            'params': model_new_params
+        }],
+                                     lr=args.lr,
+                                     weight_decay=args.weight_decay,
+                                     betas=(0.9, 0.99))
     else:
         model_named_params = [
             p for _, p in model.named_parameters() if p.requires_grad
         ]
-        optimizer = torch.optim.Adam(model_named_params, lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.99))
+        optimizer = torch.optim.Adam(model_named_params,
+                                     lr=args.lr,
+                                     weight_decay=args.weight_decay,
+                                     betas=(0.9, 0.99))
     print("completed.")
 
     model = torch.nn.DataParallel(model)
@@ -420,12 +451,14 @@ def main():
     print("=> starting main loop ...")
     for epoch in range(args.start_epoch, args.epochs):
         print("=> starting training epoch {} ..".format(epoch))
-        iterate("train", args, train_loader, model, optimizer, logger, epoch)  # train for one epoch
+        iterate("train", args, train_loader, model, optimizer, logger,
+                epoch)  # train for one epoch
 
         # validation memory reset
         for p in model.parameters():
             p.requires_grad = False
-        result, is_best = iterate("val", args, val_loader, model, None, logger, epoch)  # evaluate on validation set
+        result, is_best = iterate("val", args, val_loader, model, None, logger,
+                                  epoch)  # evaluate on validation set
 
         for p in model.parameters():
             p.requires_grad = True
