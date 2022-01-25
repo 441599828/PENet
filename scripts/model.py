@@ -234,9 +234,7 @@ class ENet(nn.Module):
         rgb_conf, d_conf = torch.chunk(self.softmax(torch.cat((rgb_conf, d_conf), dim=1)), 2, dim=1)
         output = rgb_conf * rgb_depth + d_conf * d_depth
 
-        if (self.args.network_model == 'e'):
-            return rgb_depth, d_depth, output
-        elif (self.args.dilation_rate == 1):
+        if (self.args.dilation_rate == 1):
             return torch.cat((rgb_feature0_plus, decoder_feature5), 1), output
         elif (self.args.dilation_rate == 2):
             return torch.cat((rgb_feature0_plus, decoder_feature5), 1), torch.cat((rgb_feature2_plus, decoder_feature4),

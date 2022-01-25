@@ -11,14 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "-n",
-                "pe",
                 "-b",
                 "1",
                 "--data-folder",
                 "/home/wang/data/carla/Data",
-                "--data-folder-rgb",
-                "/home/wang/data/carla/Data"
             ]
         }
     ]

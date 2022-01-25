@@ -1,3 +1,6 @@
+# remove eNet training
+# remove data-folder-rgb
+# remove multibatch_size
 import argparse
 import os
 
@@ -13,7 +16,6 @@ import criteria
 import helper
 import vis_utils
 
-from model import ENet
 from model import PENet_C1_train
 from model import PENet_C2_train
 # from model import PENet_C4_train (Not Implemented)
@@ -22,12 +24,6 @@ from model import PENet_C2
 from model import PENet_C4
 
 parser = argparse.ArgumentParser(description='Sparse-to-Dense')
-parser.add_argument('-n',
-                    '--network-model',
-                    type=str,
-                    default="e",
-                    choices=["e", "pe"],
-                    help='choose a model: enet or penet')
 parser.add_argument('--workers',
                     default=4,
                     type=int,
@@ -88,46 +84,21 @@ parser.add_argument('--data-folder',
                     type=str,
                     metavar='PATH',
                     help='data folder (default: none)')
-parser.add_argument('--data-folder-rgb',
-                    default='/home/whn/data/carla/Data',
-                    type=str,
-                    metavar='PATH',
-                    help='data folder rgb (default: none)')
-parser.add_argument('--data-folder-save',
-                    default='../results',
-                    type=str,
-                    metavar='PATH',
-                    help='data folder test results(default: none)')
 parser.add_argument('--test',
                     type=str,
-                    default="middle",
-                    choices=["easy", "middle", "hard", "hardest"],
+                    default="None",
+                    choices=["None", "easy", "middle", "hard", "hardest"],
                     help='test set in different traffic flow')
 parser.add_argument('--jitter',
                     type=float,
                     default=0.1,
                     help='color jitter for images')
-parser.add_argument(
-    '--rank-metric',
-    type=str,
-    default='rmse',
-    choices=[m for m in dir(Result()) if not m.startswith('_')],
-    help='metrics for which best result is saved')
 
-parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH')
-parser.add_argument('-f',
-                    '--freeze-backbone',
-                    action="store_true",
-                    default=False,
-                    help='freeze parameters in backbone')
-parser.add_argument('--savetest',
-                    action="store_true",
-                    default=False,
-                    help='save result kitti test dataset for submission')
-parser.add_argument('--cpu',
-                    action="store_true",
-                    default=False,
-                    help='run on cpu')
+parser.add_argument('-e',
+                    '--evaluate_model_path',
+                    default='',
+                    type=str,
+                    metavar='PATH')
 
 # geometric encoding
 parser.add_argument(
@@ -148,12 +119,9 @@ parser.add_argument('-d',
 
 args = parser.parse_args()
 args.result = os.path.join('..', 'results')
-args.use_rgb = True
-args.use_d = True
-args.use_g = False
 print(args)
 
-cuda = torch.cuda.is_available() and not args.cpu
+cuda = torch.cuda.is_available()
 if cuda:
     import torch.backends.cudnn as cudnn
 
@@ -166,9 +134,6 @@ print("=> using '{}' for computation.".format(device))
 # define loss functions
 depth_criterion = criteria.MaskedMSELoss() if (
     args.criterion == 'l2') else criteria.MaskedL1Loss()
-
-# multi batch
-multi_batch_size = 1
 
 
 def iterate(mode, args, loader, model, optimizer, logger, epoch):
@@ -207,14 +172,10 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
         start = None
         gpu_time = 0
 
-        if (args.network_model == 'e'):
-            start = time.time()
-            st1_pred, st2_pred, pred = model(batch_data)
-        else:
-            start = time.time()
-            pred = model(batch_data)
+        start = time.time()
+        pred = model(batch_data)
 
-        if (args.evaluate):
+        if (args.evaluate_model_path):
             gpu_time = time.time() - start
 
         depth_loss, photometric_loss, smooth_loss, mask = 0, 0, 0, None
@@ -233,22 +194,12 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
         if mode == 'train':
             # Loss 1: the direct depth supervision from ground truth label
             # mask=1 indicates that a pixel does not ground truth labels
-            depth_loss = depth_criterion(pred, gt)
+            loss = depth_criterion(pred, gt)
 
-            if args.network_model == 'e':
-                st1_loss = depth_criterion(st1_pred, gt)
-                st2_loss = depth_criterion(st2_pred, gt)
-                loss = (1 - w_st1 - w_st2
-                        ) * depth_loss + w_st1 * st1_loss + w_st2 * st2_loss
-            else:
-                loss = depth_loss
-
-            if i % multi_batch_size == 0:
-                optimizer.zero_grad()
+            optimizer.zero_grad()
             loss.backward()
 
-            if i % multi_batch_size == (multi_batch_size -
-                                        1) or i == (len(loader) - 1):
+            if i == (len(loader) - 1):
                 optimizer.step()
             print("loss:", loss, " epoch:", epoch, " ", i, "/", len(loader))
 
@@ -258,13 +209,12 @@ def iterate(mode, args, loader, model, optimizer, logger, epoch):
             path = os.path.join(args.data_folder_save, path_i)
             vis_utils.save_depth_as_uint8colored(pred, path)
             # vis_utils.save_depth_as_uint16png_upload(pred, path)
-        if (not args.evaluate):
+        if (not args.evaluate_model_path):
             gpu_time = time.time() - start
         # measure accuracy and record loss
         with torch.no_grad():
             mini_batch_size = next(iter(batch_data.values())).size(0)
             result = Result()
-            # if mode != 'test':
             result.evaluate(pred.data, gt.data, photometric_loss)
             [
                 m.update(result, gpu_time, data_time, mini_batch_size)
@@ -291,19 +241,21 @@ def main():
     global args
     checkpoint = None
     is_eval = False
-    if args.evaluate:
+    if args.evaluate_model_path:
         args_new = args
-        if os.path.isfile(args.evaluate):
-            print("=> loading checkpoint '{}' ... ".format(args.evaluate),
+        if os.path.isfile(args.evaluate_model_path):
+            print("=> loading checkpoint '{}' ... ".format(
+                args.evaluate_model_path),
                   end='')
-            checkpoint = torch.load(args.evaluate, map_location=device)
+            checkpoint = torch.load(args.evaluate_model_path,
+                                    map_location=device)
             args.start_epoch = checkpoint['epoch'] + 1
             args.data_folder = args_new.data_folder
             is_eval = True
             print("Completed.")
         else:
             is_eval = True
-            print("No model found at '{}'".format(args.evaluate))
+            print("No model found at '{}'".format(args.evaluate_model_path))
 
     elif args.resume:  # optionally resume from a checkpoint
         args_new = args
@@ -322,9 +274,7 @@ def main():
     print("=> creating model and optimizer ... ", end='')
     model = None
     penet_accelerated = False
-    if (args.network_model == 'e'):
-        model = ENet(args).to(device)
-    elif (is_eval == False):
+    if (is_eval == False):
         if (args.dilation_rate == 1):
             model = PENet_C1_train(args).to(device)
         elif (args.dilation_rate == 2):
@@ -354,10 +304,7 @@ def main():
     optimizer = None
 
     if checkpoint is not None:
-        if (args.freeze_backbone == True):
-            model.backbone.load_state_dict(checkpoint['model'])
-        else:
-            model.load_state_dict(checkpoint['model'], strict=False)
+        model.load_state_dict(checkpoint['model'], strict=False)
         # optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> checkpoint state loaded.")
 
@@ -369,7 +316,7 @@ def main():
 
     test_dataset = None
     test_loader = None
-    if (args.savetest):
+    if args.test != "None":
         test_dataset = CarlaDepth('test', args)
         test_loader = torch.utils.data.DataLoader(test_dataset,
                                                   batch_size=1,
@@ -397,41 +344,22 @@ def main():
                                   args.start_epoch - 1)
         return
 
-    if (args.freeze_backbone == True):
-        for p in model.backbone.parameters():
-            p.requires_grad = False
-        model_named_params = [
-            p for _, p in model.named_parameters() if p.requires_grad
-        ]
-        optimizer = torch.optim.Adam(model_named_params,
-                                     lr=args.lr,
-                                     weight_decay=args.weight_decay,
-                                     betas=(0.9, 0.99))
-    elif (args.network_model == 'pe'):
-        model_bone_params = [
-            p for _, p in model.backbone.named_parameters() if p.requires_grad
-        ]
-        model_new_params = [
-            p for _, p in model.named_parameters() if p.requires_grad
-        ]
-        model_new_params = list(set(model_new_params) - set(model_bone_params))
-        optimizer = torch.optim.Adam([{
-            'params': model_bone_params,
-            'lr': args.lr / 10
-        }, {
-            'params': model_new_params
-        }],
-                                     lr=args.lr,
-                                     weight_decay=args.weight_decay,
-                                     betas=(0.9, 0.99))
-    else:
-        model_named_params = [
-            p for _, p in model.named_parameters() if p.requires_grad
-        ]
-        optimizer = torch.optim.Adam(model_named_params,
-                                     lr=args.lr,
-                                     weight_decay=args.weight_decay,
-                                     betas=(0.9, 0.99))
+    model_bone_params = [
+        p for _, p in model.backbone.named_parameters() if p.requires_grad
+    ]
+    model_new_params = [
+        p for _, p in model.named_parameters() if p.requires_grad
+    ]
+    model_new_params = list(set(model_new_params) - set(model_bone_params))
+    optimizer = torch.optim.Adam([{
+        'params': model_bone_params,
+        'lr': args.lr / 10
+    }, {
+        'params': model_new_params
+    }],
+                                 lr=args.lr,
+                                 weight_decay=args.weight_decay,
+                                 betas=(0.9, 0.99))
     print("completed.")
 
     model = torch.nn.DataParallel(model)
@@ -462,9 +390,6 @@ def main():
 
         for p in model.parameters():
             p.requires_grad = True
-        if (args.freeze_backbone == True):
-            for p in model.module.backbone.parameters():
-                p.requires_grad = False
         if (penet_accelerated == True):
             model.module.encoder3.requires_grad = False
             model.module.encoder5.requires_grad = False

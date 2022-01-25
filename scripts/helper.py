@@ -112,11 +112,11 @@ class logger:
     def save_single_txt(self, filename, result, epoch):
         with open(filename, 'w') as txtfile:
             txtfile.write(
-                ("rank_metric={}\n" + "epoch={}\n" + "rmse={:.3f}\n" +
+                ("epoch={}\n" + "rmse={:.3f}\n" +
                  "mae={:.3f}\n" + "silog={:.3f}\n" + "squared_rel={:.3f}\n" +
                  "irmse={:.3f}\n" + "imae={:.3f}\n" + "mse={:.3f}\n" +
                  "absrel={:.3f}\n" + "lg10={:.3f}\n" + "delta1={:.3f}\n" +
-                 "t_gpu={:.4f}").format(self.args.rank_metric, epoch,
+                 "t_gpu={:.4f}").format(epoch,
                                         result.rmse, result.mae, result.silog,
                                         result.squared_rel, result.irmse,
                                         result.imae, result.mse, result.absrel,
@@ -155,7 +155,7 @@ class logger:
             vis_utils.save_image(self.img_merge, filename)
 
     def get_ranking_error(self, result):
-        return getattr(result, self.args.rank_metric)
+        return 'rmse'
 
     def rank_conditional_save_best(self, mode, result, epoch):
         error = self.get_ranking_error(result)
@@ -194,13 +194,11 @@ class logger:
               'Lg10={average.lg10:.3f}\n'
               't_GPU={time:.3f}'.format(average=avg, time=avg.gpu_time))
         if is_best and mode == "val":
-            print("New best model by %s (was %.3f)" %
-                  (self.args.rank_metric,
-                   self.get_ranking_error(self.old_best_result)))
+            print("New best model (was %.3f)" %
+                  (self.get_ranking_error(self.old_best_result)))
         elif mode == "val":
-            print("(best %s is %.3f)" %
-                  (self.args.rank_metric,
-                   self.get_ranking_error(self.best_result)))
+            print("(best rmse is %.3f)" %
+                  (self.get_ranking_error(self.best_result)))
         print("*\n")
 
 
@@ -219,24 +217,16 @@ def adjust_learning_rate(lr_init, optimizer, epoch, args):
     # lr = lr_init * (0.5**(epoch // 5))
     # '''
     lr = lr_init
-    if (args.network_model == 'pe' and args.freeze_backbone == False):
-        if (epoch >= 10):
-            lr = lr_init * 0.5
-        if (epoch >= 20):
-            lr = lr_init * 0.1
-        if (epoch >= 30):
-            lr = lr_init * 0.01
-        if (epoch >= 40):
-            lr = lr_init * 0.0005
-        if (epoch >= 50):
-            lr = lr_init * 0.00001
-    else:
-        if (epoch >= 10):
-            lr = lr_init * 0.5
-        if (epoch >= 15):
-            lr = lr_init * 0.1
-        if (epoch >= 25):
-            lr = lr_init * 0.01
+    if (epoch >= 10):
+        lr = lr_init * 0.5
+    if (epoch >= 20):
+        lr = lr_init * 0.1
+    if (epoch >= 30):
+        lr = lr_init * 0.01
+    if (epoch >= 40):
+        lr = lr_init * 0.0005
+    if (epoch >= 50):
+        lr = lr_init * 0.00001
     # '''
 
     for param_group in optimizer.param_groups:
