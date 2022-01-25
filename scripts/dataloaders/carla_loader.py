@@ -5,7 +5,7 @@ import fnmatch  # pattern matching
 import numpy as np
 from numpy import linalg as LA
 from random import choice
-from PIL import Image
+from PIL import Image, ImageOps
 import torch
 import torch.utils.data as data
 import cv2
@@ -38,12 +38,15 @@ def get_paths_and_transform(split, args):
         glob_d = os.path.join(args.data_folder, 'train/sparsedepmap/*.png')
         glob_gt = os.path.join(args.data_folder, 'train/depth/*.png')
         glob_rgb = os.path.join(args.data_folder, 'train/rgb/*.jpg')
+        glob_fmask = os.path.join(args.data_folder, 'train/frontmask/*.png')
 
     elif split == "val":
         transform = no_transform
         glob_d = os.path.join(args.data_folder, 'val/sparsedepmap/*.png')
         glob_gt = os.path.join(args.data_folder, 'val/depth/*.png')
         glob_rgb = os.path.join(args.data_folder, 'val/rgb/*.jpg')
+        glob_fmask = os.path.join(args.data_folder, 'val/frontmask/*.png')
+
 
     elif split == "test":
         if args.test == "easy":
@@ -52,18 +55,21 @@ def get_paths_and_transform(split, args):
                                   'test_easy/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_easy/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_easy/rgb/*.jpg')
+            glob_fmask = os.path.join(args.data_folder, 'test_easy/frontmask/*.png')
         elif args.test == "middle":
             transform = no_transform
             glob_d = os.path.join(args.data_folder,
                                   'test_middle/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_middle/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_middle/rgb/*.jpg')
+            glob_fmask = os.path.join(args.data_folder, 'test_middle/frontmask/*.png')
         elif args.test == "hard":
             transform = no_transform
             glob_d = os.path.join(args.data_folder,
                                   'test_hard/sparsedepmap/*.png')
             glob_gt = os.path.join(args.data_folder, 'test_hard/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_hard/rgb/*.jpg')
+            glob_fmask = os.path.join(args.data_folder, 'test_hard/frontmask/*.png')
         elif args.test == "hardest":
             transform = no_transform
             glob_d = os.path.join(args.data_folder,
@@ -71,14 +77,16 @@ def get_paths_and_transform(split, args):
             glob_gt = os.path.join(args.data_folder,
                                    'test_hardest/depth/*.png')
             glob_rgb = os.path.join(args.data_folder, 'test_hardest/rgb/*.jpg')
+            glob_fmask = os.path.join(args.data_folder, 'test_hardest/frontmask/*.png')
     else:
         raise ValueError("Unrecognized split " + str(split))
 
     paths_d = sorted(glob.glob(glob_d))
     paths_gt = sorted(glob.glob(glob_gt))
     paths_rgb = sorted(glob.glob(glob_rgb))
+    paths_fmask = sorted(glob.glob(glob_fmask))
 
-    paths = {"rgb": paths_rgb, "d": paths_d, "gt": paths_gt}
+    paths = {"rgb": paths_rgb, "d": paths_d, "gt": paths_gt, "fmask": paths_fmask}
     return paths, transform
 
 
@@ -90,14 +98,24 @@ def rgb_read(filename):
     return rgb_png
 
 
-def depth_read(filename):
+def depth_read(filename, fmask):
     # loads depth map D from png file
     # and returns it as a numpy array,
     assert os.path.exists(filename), "file not found: {}".format(filename)
     img_file = Image.open(filename)
-    depth_png = np.array(img_file, dtype=int)
+    if not fmask:
+        depth_png = np.array(img_file, dtype=int)
+        depth = depth_png.astype(np.float) / 256.
+    else:
+        mask=Image.open(fmask).convert("L")
+        mask=ImageOps.invert(mask).convert("1")
+        empty=Image.new("I",(img_file.size),0)
+        mask_file=Image.composite(img_file,empty,mask)
+        # mask_file.show()
+        depth_png=np.array(img_file,dtype=int)
+        depth=depth_png.astype(np.float) / 256.
     img_file.close()
-    depth = depth_png.astype(np.float) / 256.
+
     depth = np.expand_dims(depth, -1)
     return depth
 
@@ -149,8 +167,12 @@ class CarlaDepth(data.Dataset):
 
     def __getraw__(self, index):
         rgb = rgb_read(self.paths['rgb'][index])
-        sparse = depth_read(self.paths['d'][index])
-        target = depth_read(self.paths['gt'][index])
+        if self.args.front_mask:
+            sparse = depth_read(self.paths['d'][index], self.paths['fmask'][index])
+        else:
+            sparse = depth_read(self.paths['d'][index], False)
+        # target ground truth do not move front things.
+        target = depth_read(self.paths['gt'][index], False)
         return rgb, sparse, target
 
     def __getitem__(self, index):

@@ -1,6 +1,4 @@
-# remove eNet training
-# remove data-folder-rgb
-# remove multibatch_size
+# todo: add mask of front scene
 import argparse
 import os
 
@@ -95,7 +93,7 @@ parser.add_argument('--jitter',
                     help='color jitter for images')
 
 parser.add_argument('-e',
-                    '--evaluate_model_path',
+                    '--evaluate-model-path',
                     default='',
                     type=str,
                     metavar='PATH')
@@ -116,7 +114,12 @@ parser.add_argument('-d',
                     type=int,
                     choices=[1, 2, 4],
                     help='CSPN++ dilation rate')
-
+# remove lidar points for front person
+parser.add_argument('-fm',
+                    '--front-mask',
+                    action='store_true',
+                    default=False,
+                    help='Block front lidar points.')
 args = parser.parse_args()
 args.result = os.path.join('..', 'results')
 print(args)
