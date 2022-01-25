@@ -155,7 +155,7 @@ class logger:
             vis_utils.save_image(self.img_merge, filename)
 
     def get_ranking_error(self, result):
-        return 'rmse'
+        return getattr(result, 'rmse')
 
     def rank_conditional_save_best(self, mode, result, epoch):
         error = self.get_ranking_error(result)
